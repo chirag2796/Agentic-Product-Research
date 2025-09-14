@@ -41,10 +41,19 @@ The system consists of 5 specialized agents that work collaboratively:
 
 ## 🎯 Usage
 
-Run the main application:
-
+### For Assignment (LangGraph Framework)
 ```bash
-python main.py
+python main_langgraph.py
+```
+
+### For Interview Demo (Interactive Mode)
+```bash
+python main_langgraph.py --interactive
+```
+
+### For Fallback (No LLM Required)
+```bash
+python run_fallback.py
 ```
 
 The system will:
@@ -54,6 +63,15 @@ The system will:
 4. Analyze and structure the data
 5. Validate findings
 6. Generate a comprehensive comparison report
+
+### 🎪 Interactive Mode Features
+
+When using `--interactive` flag:
+- **Pause points** at each major stage for explanations
+- **Detailed agent reasoning** and decision-making
+- **State information** showing current progress
+- **Progress bars** and visual feedback
+- **Perfect for interviews** and live demonstrations
 
 ## 📊 Output
 
