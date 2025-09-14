@@ -8,7 +8,7 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 from agents.fallback_agents import FallbackCRMResearchSystem
-from utils.pdf_generator import PDFReportGenerator
+from utils.html_generator import HTMLReportGenerator
 from config import CRM_TOOLS, RESEARCH_AREAS
 
 console = Console()
@@ -33,20 +33,26 @@ Note: This mode uses web search only - no LLM calls required
     console.print(Panel(welcome_text, title="🚀 CRM Research Agent System (Fallback)", border_style="blue"))
 
 
-def save_results(results: dict, pdf_generator: PDFReportGenerator):
-    """Save results to files"""
+def save_results(results: dict, html_generator: HTMLReportGenerator):
+    """Save results to files in organized folders"""
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     
+    # Create run-specific folder
+    run_folder = f"results/run_{timestamp}"
+    os.makedirs(run_folder, exist_ok=True)
+    
     # Save JSON results
-    json_filename = f"crm_research_results_{timestamp}.json"
-    with open(json_filename, 'w', encoding='utf-8') as f:
+    json_filename = f"fallback_crm_research_{timestamp}.json"
+    json_path = os.path.join(run_folder, json_filename)
+    with open(json_path, 'w', encoding='utf-8') as f:
         json.dump(results, f, indent=2, ensure_ascii=False)
-    console.print(f"✅ JSON results saved to: {json_filename}")
+    console.print(f"✅ JSON results saved to: {json_path}")
     
     # Save text summary
-    txt_filename = f"crm_research_summary_{timestamp}.txt"
-    with open(txt_filename, 'w', encoding='utf-8') as f:
-        f.write(f"CRM Research Results - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+    txt_filename = f"fallback_crm_summary_{timestamp}.txt"
+    txt_path = os.path.join(run_folder, txt_filename)
+    with open(txt_path, 'w', encoding='utf-8') as f:
+        f.write(f"Fallback CRM Research Results - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
         f.write("=" * 80 + "\n\n")
         
         if 'final_report' in results and 'final_report' in results['final_report']:
@@ -54,21 +60,16 @@ def save_results(results: dict, pdf_generator: PDFReportGenerator):
         else:
             f.write("Research completed successfully. See JSON file for detailed results.")
     
-    console.print(f"✅ Text summary saved to: {txt_filename}")
+    console.print(f"✅ Text summary saved to: {txt_path}")
     
-    # Generate PDF reports
+    # Generate HTML report
     try:
-        pdf_filename = f"crm_research_report_{timestamp}.pdf"
-        pdf_path = pdf_generator.generate_pdf_report(results, pdf_filename)
-        console.print(f"✅ PDF report saved to: {pdf_path}")
-        
-        # Generate summary PDF
-        summary_pdf_filename = f"crm_research_summary_{timestamp}.pdf"
-        summary_pdf_path = pdf_generator.generate_summary_pdf(results, summary_pdf_filename)
-        console.print(f"✅ PDF summary saved to: {summary_pdf_path}")
+        html_filename = f"fallback_crm_report_{timestamp}.html"
+        html_path = html_generator.generate_html_report(results, html_filename, run_folder)
+        console.print(f"✅ HTML report saved to: {html_path}")
         
     except Exception as e:
-        console.print(f"⚠️  PDF generation failed: {str(e)}")
+        console.print(f"⚠️  HTML generation failed: {str(e)}")
 
 
 def display_summary_table():
@@ -102,7 +103,7 @@ def main():
         # Initialize fallback system
         console.print("🔧 Initializing fallback research system...")
         research_system = FallbackCRMResearchSystem()
-        pdf_generator = PDFReportGenerator()
+        html_generator = HTMLReportGenerator()
         
         # Run research
         console.print("🔍 Research in progress...")
@@ -121,10 +122,10 @@ def main():
         
         # Save results
         console.print("\n💾 Saving results...")
-        save_results(results, pdf_generator)
+        save_results(results, html_generator)
         
         console.print("\n✅ Research completed successfully!")
-        console.print("📁 Check the 'results' folder for PDF reports")
+        console.print("📁 Check the 'results' folder for HTML reports")
         
     except Exception as e:
         console.print(f"\n❌ Error during research: {str(e)}")

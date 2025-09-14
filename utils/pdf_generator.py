@@ -65,10 +65,13 @@ class PDFReportGenerator:
             os.makedirs(results_folder)
         return results_folder
     
-    def generate_pdf_report(self, research_data: Dict[str, Any], filename: str = None) -> str:
+    def generate_pdf_report(self, research_data: Dict[str, Any], filename: str = None, custom_folder: str = None) -> str:
         """Generate PDF report from research data"""
-        # Create results folder
-        results_folder = self.create_results_folder()
+        # Use custom folder if provided, otherwise create results folder
+        if custom_folder:
+            results_folder = custom_folder
+        else:
+            results_folder = self.create_results_folder()
         
         # Generate filename with timestamp if not provided
         if not filename:
@@ -93,10 +96,9 @@ class PDFReportGenerator:
         # Executive Summary
         if 'final_report' in research_data:
             final_report = research_data['final_report']
-            if 'final_report' in final_report:
-                story.append(Paragraph("Executive Summary", self.styles['CustomSubtitle']))
-                story.append(Paragraph(final_report['final_report'], self.styles['CustomBody']))
-                story.append(Spacer(1, 20))
+            story.append(Paragraph("Executive Summary", self.styles['CustomSubtitle']))
+            story.append(Paragraph(final_report, self.styles['CustomBody']))
+            story.append(Spacer(1, 20))
         
         # Research Plan
         if 'research_plan' in research_data:
@@ -107,44 +109,51 @@ class PDFReportGenerator:
             story.append(Spacer(1, 20))
         
         # Individual CRM Research Results
-        if 'research_results' in research_data:
+        if 'research_data' in research_data and 'results' in research_data['research_data']:
             story.append(Paragraph("Research Results", self.styles['CustomSubtitle']))
             
-            for result in research_data['research_results']:
-                crm_tool = result.get('crm_tool', 'Unknown CRM')
+            for crm_tool, data in research_data['research_data']['results'].items():
                 story.append(Paragraph(f"{crm_tool} Analysis", self.styles['Heading3']))
-                
-                if 'analysis' in result:
-                    story.append(Paragraph(result['analysis'], self.styles['CustomBody']))
-                
+                story.append(Paragraph(f"Research completed on {data.get('timestamp', 'Unknown date')}", self.styles['CustomBody']))
                 story.append(Spacer(1, 12))
         
         # Analysis Data
-        if 'analysis_data' in research_data:
+        if 'analysis_results' in research_data:
             story.append(PageBreak())
             story.append(Paragraph("Comparative Analysis", self.styles['CustomSubtitle']))
             
-            analysis = research_data['analysis_data']
-            if 'comparison_analysis' in analysis:
-                story.append(Paragraph(analysis['comparison_analysis'], self.styles['CustomBody']))
+            for crm_tool, analysis in research_data['analysis_results'].items():
+                story.append(Paragraph(f"{crm_tool} Analysis", self.styles['Heading3']))
+                story.append(Paragraph(f"Pricing: {analysis.get('pricing', 'N/A')}", self.styles['CustomBody']))
+                story.append(Paragraph(f"Features: {analysis.get('features', 'N/A')}", self.styles['CustomBody']))
+                story.append(Paragraph(f"Integrations: {analysis.get('integrations', 'N/A')}", self.styles['CustomBody']))
+                story.append(Paragraph(f"Limitations: {analysis.get('limitations', 'N/A')}", self.styles['CustomBody']))
+                story.append(Spacer(1, 12))
         
         # Validation Results
-        if 'validated_data' in research_data:
+        if 'validation_results' in research_data:
             story.append(PageBreak())
             story.append(Paragraph("Validation Results", self.styles['CustomSubtitle']))
             
-            validation = research_data['validated_data']
-            if 'validation_results' in validation:
-                story.append(Paragraph(validation['validation_results'], self.styles['CustomBody']))
+            validation = research_data['validation_results']
+            if 'recommendations' in validation:
+                story.append(Paragraph("Validation Recommendations:", self.styles['Heading3']))
+                for rec in validation['recommendations']:
+                    story.append(Paragraph(f"• {rec}", self.styles['CustomBody']))
+                story.append(Spacer(1, 12))
         
         # Build PDF
         doc.build(story)
         
         return filepath
     
-    def generate_summary_pdf(self, research_data: Dict[str, Any], filename: str = None) -> str:
+    def generate_summary_pdf(self, research_data: Dict[str, Any], filename: str = None, custom_folder: str = None) -> str:
         """Generate a concise summary PDF"""
-        results_folder = self.create_results_folder()
+        # Use custom folder if provided, otherwise create results folder
+        if custom_folder:
+            results_folder = custom_folder
+        else:
+            results_folder = self.create_results_folder()
         
         if not filename:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -167,16 +176,15 @@ class PDFReportGenerator:
         # Extract key information for summary
         if 'final_report' in research_data:
             final_report = research_data['final_report']
-            if 'final_report' in final_report:
-                # Try to extract key sections
-                report_text = final_report['final_report']
-                
-                # Split into sections and take the most important parts
-                sections = report_text.split('\n\n')
-                for section in sections[:5]:  # Take first 5 sections
-                    if section.strip():
-                        story.append(Paragraph(section.strip(), self.styles['CustomBody']))
-                        story.append(Spacer(1, 12))
+            # Try to extract key sections
+            report_text = final_report
+            
+            # Split into sections and take the most important parts
+            sections = report_text.split('\n\n')
+            for section in sections[:5]:  # Take first 5 sections
+                if section.strip():
+                    story.append(Paragraph(section.strip(), self.styles['CustomBody']))
+                    story.append(Spacer(1, 12))
         
         # Build PDF
         doc.build(story)

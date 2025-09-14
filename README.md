@@ -57,10 +57,24 @@ The system will:
 
 ## 📊 Output
 
-The system generates:
-- **Structured JSON comparison** with pricing, features, integrations, and limitations
-- **Markdown table** for easy side-by-side comparison
-- **Detailed analysis** with recommendations for small to mid-size B2B businesses
+The system generates files in organized run folders:
+
+- **JSON Results**: `results/run_YYYYMMDD_HHMMSS/langgraph_crm_research_YYYYMMDD_HHMMSS.json` - Structured data
+- **Text Summary**: `results/run_YYYYMMDD_HHMMSS/langgraph_crm_summary_YYYYMMDD_HHMMSS.txt` - Human-readable format
+- **HTML Report**: `results/run_YYYYMMDD_HHMMSS/langgraph_crm_report_YYYYMMDD_HHMMSS.html` - Beautiful web report
+
+### 🌐 Viewing HTML Reports
+
+To open the latest HTML report in your browser:
+```bash
+python view_report.py
+```
+
+The HTML reports feature:
+- **Responsive Design**: Works on desktop and mobile
+- **Beautiful Styling**: Professional CSS with gradients and animations
+- **Interactive Elements**: Hover effects and smooth transitions
+- **Comprehensive Content**: All research data in an easy-to-read format
 
 ## 🔧 Configuration
 
