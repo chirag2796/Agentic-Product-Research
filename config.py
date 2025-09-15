@@ -33,3 +33,6 @@ RESEARCH_AREAS = [
     "integrations",
     "limitations"
 ]
+
+# Assignment Query
+ASSIGNMENT_QUERY = "We're evaluating CRM tools. Give me a summarized comparison between HubSpot, Zoho, and Salesforce for small to mid-size B2B businesses. Focus on pricing, features, integrations, and limitations."
