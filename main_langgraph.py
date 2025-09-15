@@ -218,6 +218,8 @@ def run_step_by_step_research(orchestrator, html_generator):
     )
     
     # Step 1: Query Analysis
+    console.print("\n🎭 **ORCHESTRATOR INITIATION**: The **ORCHESTRATOR** is now initiating the multi-agent workflow by assigning the first task to the Query Analyzer Agent.")
+    
     pause_for_explanation(
         "STEP 1: QUERY ANALYSIS",
         """
@@ -270,7 +272,11 @@ extracts structured information using LLM analysis.
         state["agent_messages"].append("Query Analyzer: Fallback analysis completed")
     
     show_state_info(state, True)
-    pause_for_explanation("", "Press Enter to continue to Research Coordination...", True)
+    
+    # Plain text explanation of agent transition
+    console.print("\n🔄 **ORCHESTRATOR DECISION**: Query Analyzer has successfully extracted structured information from the natural language query. The **ORCHESTRATOR** is now transferring control to the Research Coordinator Agent to create a comprehensive research strategy.")
+    
+    pause_for_explanation("TRANSITION", "Press Enter to continue to Research Coordination...", True)
     
     # Step 2: Research Coordination
     pause_for_explanation(
@@ -340,7 +346,11 @@ using LLM to plan the approach for each CRM tool.
         state["agent_messages"].append("Research Coordinator: Fallback plan created")
     
     show_state_info(state, True)
-    pause_for_explanation("", "Press Enter to continue to Web Research...", True)
+    
+    # Plain text explanation of agent transition
+    console.print("\n🔄 **ORCHESTRATOR DECISION**: Research Coordinator has created a comprehensive research strategy using LLM analysis. The **ORCHESTRATOR** is now transferring control to the Web Research Specialist Agent to gather real-time data from web sources.")
+    
+    pause_for_explanation("TRANSITION", "Press Enter to continue to Web Research...", True)
     
     # Step 3: Web Research
     pause_for_explanation(
@@ -407,7 +417,11 @@ Each CRM tool is researched with targeted queries focusing on the research areas
     console.print(f"   • Total search results: {sum(len(tool['results']) for tool in research_results.values())}")
     
     show_state_info(state, True)
-    pause_for_explanation("", "Press Enter to continue to Data Analysis...", True)
+    
+    # Plain text explanation of agent transition
+    console.print("\n🔄 **ORCHESTRATOR DECISION**: Web Research Specialist has successfully gathered real-time data from web sources for all CRM tools. The **ORCHESTRATOR** is now transferring control to the Data Analysis Specialist Agent to process and analyze the raw research data using LLM.")
+    
+    pause_for_explanation("TRANSITION", "Press Enter to continue to Data Analysis...", True)
     
     # Step 4: Data Analysis
     pause_for_explanation(
@@ -491,7 +505,11 @@ to extract structured information and create actionable insights.
     console.print(f"   • Analysis quality: LLM-powered")
     
     show_state_info(state, True)
-    pause_for_explanation("", "Press Enter to continue to Validation...", True)
+    
+    # Plain text explanation of agent transition
+    console.print("\n🔄 **ORCHESTRATOR DECISION**: Data Analysis Specialist has successfully processed and analyzed all research data using LLM to extract structured information. The **ORCHESTRATOR** is now transferring control to the Validation Specialist Agent to ensure data quality and detect any gaps.")
+    
+    pause_for_explanation("TRANSITION", "Press Enter to continue to Validation...", True)
     
     # Step 5: Validation
     pause_for_explanation(
@@ -581,7 +599,11 @@ to validate findings and detect any gaps or inconsistencies.
         state["agent_messages"].append("Validation Agent: Fallback validation completed")
     
     show_state_info(state, True)
-    pause_for_explanation("", "Press Enter to continue to Quality Control...", True)
+    
+    # Plain text explanation of agent transition
+    console.print("\n🔄 **ORCHESTRATOR DECISION**: Validation Specialist has successfully validated all research findings using LLM to ensure data quality and completeness. The **ORCHESTRATOR** is now transferring control to the Quality Controller Agent to perform final quality assurance.")
+    
+    pause_for_explanation("TRANSITION", "Press Enter to continue to Quality Control...", True)
     
     # Step 6: Quality Control
     pause_for_explanation(
@@ -618,7 +640,11 @@ to ensure the research meets standards before report generation.
     console.print(f"   • Completeness: {quality_control['completeness']}")
     
     show_state_info(state, True)
-    pause_for_explanation("", "Press Enter to continue to Report Generation...", True)
+    
+    # Plain text explanation of agent transition
+    console.print("\n🔄 **ORCHESTRATOR DECISION**: Quality Controller has successfully performed final quality assurance and confirmed that all research meets standards. The **ORCHESTRATOR** is now transferring control to the Report Generation Specialist Agent to create the final comprehensive business report.")
+    
+    pause_for_explanation("TRANSITION", "Press Enter to continue to Report Generation...", True)
     
     # Step 7: Report Generation
     pause_for_explanation(
@@ -707,7 +733,7 @@ using LLM to synthesize all findings into a comprehensive business report.
         state["agent_messages"].append("Report Generator: Fallback report generated")
     
     show_state_info(state, True)
-    pause_for_explanation("", "Press Enter to save results and complete...", True)
+    pause_for_explanation("TRANSITION", "Press Enter to save results and complete...", True)
     
     # Save results
     console.print("\n💾 Saving results...")
