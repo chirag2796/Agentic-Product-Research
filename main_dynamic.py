@@ -19,7 +19,7 @@ from rich.panel import Panel
 from rich.text import Text
 from rich.prompt import Prompt
 
-from agents.langgraph_agents import CRMResearchOrchestrator, AgentState
+from agents.generic_agents import GenericResearchOrchestrator, GenericAgentState
 from utils.html_generator import HTMLReportGenerator
 from config import ASSIGNMENT_QUERY
 
@@ -1447,7 +1447,7 @@ def run_interactive_research(interactive_mode: bool = False):
     
     # Initialize system
     console.print("🔧 Initializing LangGraph orchestrator...")
-    orchestrator = CRMResearchOrchestrator()
+    orchestrator = GenericResearchOrchestrator()
     html_generator = HTMLReportGenerator()
     
     # Run dynamic research
