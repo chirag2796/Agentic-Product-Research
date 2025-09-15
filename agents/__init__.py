@@ -1,6 +1,6 @@
 """
 Agents package for the AI Agent System
 """
-from .simple_agents import CRMResearchSystem
+from .langgraph_agents import CRMResearchOrchestrator, AgentState
 
-__all__ = ['CRMResearchSystem']
+__all__ = ['CRMResearchOrchestrator', 'AgentState']
