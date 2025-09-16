@@ -180,9 +180,16 @@ def orchestrator_decision(orchestrator, state: dict, last_agent_result: str) -> 
         
         decision = response.content.strip().lower()
         
+        # Extract only the first word/line (the actual decision)
+        decision_clean = decision.split('\n')[0].split()[0] if decision else decision
+        
+        # Debug: Print the exact decision
+        console.print(f"🔍 **DEBUG**: Original = '{decision[:50]}...' (length: {len(decision)})")
+        console.print(f"🔍 **DEBUG**: Cleaned = '{decision_clean}' (length: {len(decision_clean)})")
+        
         # Don't add orchestrator decisions to agent messages - they're internal
         
-        return decision
+        return decision_clean
         
     except Exception as e:
         console.print(f"❌ Orchestrator decision failed: {e}")
@@ -368,22 +375,26 @@ This agent is completely generic and can handle any type of research query.
             if decision == "research_planning":
                 show_agent_transfer("Query Parser", "Research Planner", "Orchestrator decided to create research plan")
                 current_step = "research_planning"
+                pause_for_explanation("TRANSITION", f"Press Enter to continue with {decision.upper()}...", interactive_mode)
             elif decision == "data_collection":
                 show_agent_transfer("Query Parser", "Data Collector", "Orchestrator decided to collect data")
                 current_step = "data_collection"
+                pause_for_explanation("TRANSITION", f"Press Enter to continue with {decision.upper()}...", interactive_mode)
             elif decision == "data_analysis":
                 show_agent_transfer("Query Parser", "Data Analyzer", "Orchestrator decided to analyze data")
                 current_step = "data_analysis"
+                pause_for_explanation("TRANSITION", f"Press Enter to continue with {decision.upper()}...", interactive_mode)
             elif decision == "report_synthesis":
                 show_agent_transfer("Query Parser", "Report Synthesizer", "Orchestrator decided to synthesize report")
                 current_step = "report_synthesis"
+                pause_for_explanation("TRANSITION", f"Press Enter to continue with {decision.upper()}...", interactive_mode)
             elif decision == "end":
+                pause_for_explanation("TRANSITION", f"Press Enter to continue with {decision.upper()}...", interactive_mode)
                 break
             else:
                 show_agent_transfer("Query Parser", "Research Planner", "Orchestrator default decision")
                 current_step = "research_planning"  # Default
-            
-            pause_for_explanation("TRANSITION", f"Press Enter to continue with {decision.upper()}...", interactive_mode)
+                pause_for_explanation("TRANSITION", f"Press Enter to continue with {decision.upper()}...", interactive_mode)
             
         elif current_step == "research_planning":
             # Research Planning Step
@@ -488,19 +499,22 @@ This agent demonstrates true reasoning and planning capabilities.
             if decision == "data_collection":
                 show_agent_transfer("Research Planner", "Data Collector", "Orchestrator decided to collect data")
                 current_step = "data_collection"
+                pause_for_explanation("TRANSITION", f"Press Enter to continue with {decision.upper()}...", interactive_mode)
             elif decision == "data_analysis":
                 show_agent_transfer("Research Planner", "Data Analyzer", "Orchestrator decided to analyze data")
                 current_step = "data_analysis"
+                pause_for_explanation("TRANSITION", f"Press Enter to continue with {decision.upper()}...", interactive_mode)
             elif decision == "report_synthesis":
                 show_agent_transfer("Research Planner", "Report Synthesizer", "Orchestrator decided to synthesize report")
                 current_step = "report_synthesis"
+                pause_for_explanation("TRANSITION", f"Press Enter to continue with {decision.upper()}...", interactive_mode)
             elif decision == "end":
+                pause_for_explanation("TRANSITION", f"Press Enter to continue with {decision.upper()}...", interactive_mode)
                 break
             else:
                 show_agent_transfer("Research Planner", "Data Collector", "Orchestrator default decision")
                 current_step = "data_collection"  # Default
-            
-            pause_for_explanation("TRANSITION", f"Press Enter to continue with {decision.upper()}...", interactive_mode)
+                pause_for_explanation("TRANSITION", f"Press Enter to continue with {decision.upper()}...", interactive_mode)
             
         elif current_step == "data_collection":
             # Data Collection Step
@@ -590,19 +604,22 @@ This agent shows how agents can delegate and coordinate tasks.
             if decision == "data_analysis":
                 show_agent_transfer("Data Collector", "Data Analyzer", "Orchestrator decided to analyze collected data")
                 current_step = "data_analysis"
+                pause_for_explanation("TRANSITION", f"Press Enter to continue with {decision.upper()}...", interactive_mode)
             elif decision == "additional_research":
                 show_agent_transfer("Data Collector", "Data Collector", "Orchestrator decided to collect more data")
                 current_step = "data_collection"  # Loop back for more research
+                pause_for_explanation("TRANSITION", f"Press Enter to continue with {decision.upper()}...", interactive_mode)
             elif decision == "report_synthesis":
                 show_agent_transfer("Data Collector", "Report Synthesizer", "Orchestrator decided to synthesize report")
                 current_step = "report_synthesis"
+                pause_for_explanation("TRANSITION", f"Press Enter to continue with {decision.upper()}...", interactive_mode)
             elif decision == "end":
+                pause_for_explanation("TRANSITION", f"Press Enter to continue with {decision.upper()}...", interactive_mode)
                 break
             else:
                 show_agent_transfer("Data Collector", "Data Analyzer", "Orchestrator default decision")
                 current_step = "data_analysis"  # Default
-            
-            pause_for_explanation("TRANSITION", f"Press Enter to continue with {decision.upper()}...", interactive_mode)
+                pause_for_explanation("TRANSITION", f"Press Enter to continue with {decision.upper()}...", interactive_mode)
             
         elif current_step == "data_analysis":
             # Data Analysis Step
@@ -700,19 +717,22 @@ This agent shows true reasoning capabilities across different domains.
             if decision == "enhance_analysis":
                 show_agent_transfer("Data Analyzer", "Data Analyzer", "Orchestrator decided to enhance analysis")
                 current_step = "data_analysis"  # Loop back for enhanced analysis
+                pause_for_explanation("TRANSITION", f"Press Enter to continue with {decision.upper()}...", interactive_mode)
             elif decision == "additional_research":
                 show_agent_transfer("Data Analyzer", "Data Collector", "Orchestrator decided to collect more data")
                 current_step = "data_collection"  # Loop back for more research
+                pause_for_explanation("TRANSITION", f"Press Enter to continue with {decision.upper()}...", interactive_mode)
             elif decision == "report_synthesis":
                 show_agent_transfer("Data Analyzer", "Report Synthesizer", "Orchestrator decided to synthesize report")
                 current_step = "report_synthesis"
+                pause_for_explanation("TRANSITION", f"Press Enter to continue with {decision.upper()}...", interactive_mode)
             elif decision == "end":
+                pause_for_explanation("TRANSITION", f"Press Enter to continue with {decision.upper()}...", interactive_mode)
                 break
             else:
                 show_agent_transfer("Data Analyzer", "Report Synthesizer", "Orchestrator default decision")
                 current_step = "report_synthesis"  # Default
-            
-            pause_for_explanation("TRANSITION", f"Press Enter to continue with {decision.upper()}...", interactive_mode)
+                pause_for_explanation("TRANSITION", f"Press Enter to continue with {decision.upper()}...", interactive_mode)
             
         elif current_step == "report_synthesis":
             # Report Synthesis Step
@@ -806,24 +826,20 @@ This agent demonstrates the power of LLM-driven report generation.
             if decision == "enhance_analysis":
                 show_agent_transfer("Report Synthesizer", "Data Analyzer", "Orchestrator decided to enhance analysis")
                 current_step = "data_analysis"  # Loop back for enhanced analysis
+                pause_for_explanation("TRANSITION", f"Press Enter to continue with {decision.upper()}...", interactive_mode)
             elif decision == "additional_research":
                 show_agent_transfer("Report Synthesizer", "Data Collector", "Orchestrator decided to collect more data")
                 current_step = "data_collection"  # Loop back for more research
+                pause_for_explanation("TRANSITION", f"Press Enter to continue with {decision.upper()}...", interactive_mode)
             elif decision == "end":
-                # End if we have comprehensive results and enough iterations
-                if len(state.get("analysis_results", {})) >= 2 and len(state.get("final_report", "")) > 4000 and state.get("iteration_count", 0) >= 6:
-                    break
-                else:
-                    # Force more data collection if results are not comprehensive enough
-                    decision = "data_collection"
-                    show_agent_transfer("Report Synthesizer", "Data Collector", "Orchestrator forced data collection - need more entities")
-                    current_step = "data_collection"
+                # End the research process
+                pause_for_explanation("TRANSITION", f"Press Enter to continue with {decision.upper()}...", interactive_mode)
+                break
             else:
                 # Default to data collection for more back-and-forth
                 show_agent_transfer("Report Synthesizer", "Data Collector", "Orchestrator default to data collection")
                 current_step = "data_collection"
-            
-            pause_for_explanation("TRANSITION", f"Press Enter to continue with {decision.upper()}...", interactive_mode)
+                pause_for_explanation("TRANSITION", f"Press Enter to continue with {decision.upper()}...", interactive_mode)
     
     # Save results
     results_dir = Path("results")
