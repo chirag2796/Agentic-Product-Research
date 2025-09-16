@@ -39,6 +39,20 @@ def show_llm_call(prompt: str, response: str, agent_name: str):
     console.print(f"[green]{response[:500]}{'...' if len(response) > 500 else ''}[/green]")
 
 
+def show_agent_transfer_chain(agent_messages: list):
+    """Show the complete agent transfer chain in one line"""
+    # Extract agent names from messages (including duplicates to show actual flow)
+    agent_chain = []
+    for message in agent_messages:
+        if ":" in message:
+            agent_name = message.split(":")[0].strip()
+            agent_chain.append(agent_name)
+    
+    # Create the chain string showing actual flow
+    chain_str = " → ".join(agent_chain)
+    console.print(f"\n🔄 **COMPLETE AGENT TRANSFER CHAIN:** {chain_str}")
+
+
 def show_agent_transfer(from_agent: str, to_agent: str, reason: str = ""):
     """Show clear agent transfer with reason"""
     console.print(f"\n🔄 **CONTROL TRANSFER:** {from_agent} → {to_agent}")
@@ -103,7 +117,8 @@ def orchestrator_decision(orchestrator, state: dict, last_agent_result: str) -> 
         "analysis_quality": len(state.get("analysis_results", {})),
         "validation_status": "validation_results" in state,
         "data_completeness": _assess_data_completeness(state),
-        "report_quality": "final_report" in state and len(state.get("final_report", "")) > 1000
+        "report_quality": "final_report" in state and len(state.get("final_report", "")) > 1000,
+        "agent_call_counts": state.get("agent_call_counts", {"data_collector": 0, "data_analyzer": 0, "report_synthesizer": 0})
     }
     
     # Enhanced decision prompt for truly dynamic behavior
@@ -118,6 +133,7 @@ def orchestrator_decision(orchestrator, state: dict, last_agent_result: str) -> 
     - Validation Status: {decision_context['validation_status']}
     - Data Completeness: {decision_context['data_completeness']}
     - Report Quality: {decision_context['report_quality']}
+    - Agent Call Counts: {decision_context['agent_call_counts']}
     
     Last Agent Result: {last_agent_result}
     
@@ -133,24 +149,25 @@ def orchestrator_decision(orchestrator, state: dict, last_agent_result: str) -> 
     9. "cross_validation" - If findings need cross-validation
     10. "end" - If research is complete and satisfactory
     
-    Decision Criteria (BE VERY AGGRESSIVE ABOUT QUALITY AND BACK-AND-FORTH):
-    - If research data < 3 entities OR any entity has < 2 focus areas → data_collection
-    - If analysis is incomplete OR missing key insights → data_analysis or enhance_analysis
-    - If validation found issues OR data completeness is poor → additional_research or cross_validation
-    - If report is too short (< 5000 chars) OR incomplete → report_synthesis
-    - If iteration count < 6 AND data quality could be better → data_collection or enhance_analysis
-    - If report exists but could be more comprehensive → enhance_analysis or additional_research
-    - If analysis exists but report is missing key entities → data_collection for missing entities
-    - If we have data but analysis is shallow → enhance_analysis
-    - If we have analysis but report doesn't cover all entities → report_synthesis
-    - Only end if ALL entities are researched, analyzed, AND report is comprehensive (> 5000 chars)
+    Decision Criteria (SHOW NON-SEQUENTIAL ORCHESTRATION WITH CONTROLLED LOOPS):
+    - If research data < 3 entities AND data_collector called < 4 times → data_collection (need all 3 CRM tools)
+    - If analysis is missing for any researched entity AND data_analyzer called < 4 times → data_analysis
+    - If we have 3 entities researched but < 3 analyzed AND data_analyzer called < 4 times → data_analysis
+    - If we have 3 entities analyzed but report is missing AND report_synthesizer called < 3 times → report_synthesis
+    - If report exists but doesn't cover all 3 entities AND data_collector called < 4 times → data_collection (get missing entities)
+    - If report exists and covers all 3 entities AND iteration count >= 8 → end
+    - If iteration count > 15 → end (prevent infinite loops)
+    - If all 3 entities are researched, analyzed, and reported → end
     
-    CRITICAL: Show TRUE DYNAMIC ORCHESTRATION by:
-    1. Looping back to data_collection if any entity is missing or needs more research
-    2. Looping back to data_analysis if analysis is incomplete or shallow
-    3. Looping back to report_synthesis if report is missing key information
-    4. Making multiple passes through the same agents for better quality
-    5. Being aggressive about quality - it's better to do 8 iterations for excellent results than 3 for mediocre ones
+    IMPORTANT: Show TRUE DYNAMIC ORCHESTRATION by:
+    1. Collect data for all 3 CRM entities (HubSpot, Zoho, Salesforce) - 3-4 data collection cycles
+    2. Analyze data for all 3 CRM entities - 3-4 data analysis cycles  
+    3. Generate comprehensive report covering all 3 entities - 2-3 report synthesis cycles
+    4. Show 3-4 back-and-forth cycles to demonstrate non-sequential behavior
+    5. Aim for 10-12 total iterations with meaningful loops
+    6. Focus on getting complete data for all 3 CRM tools (HubSpot, Zoho, Salesforce)
+    7. Ensure report covers all 3 entities with detailed comparison
+    8. NO CHARACTER LIMITS on reports - make them comprehensive
     
     Respond with ONLY the action name (e.g., "data_collection", "enhance_analysis", "additional_research", etc.)
     """
@@ -169,15 +186,19 @@ def orchestrator_decision(orchestrator, state: dict, last_agent_result: str) -> 
         
     except Exception as e:
         console.print(f"❌ Orchestrator decision failed: {e}")
-        # Fallback to sequential flow with more aggressive looping
-        if decision_context['iteration_count'] < 6:
+        # Fallback to dynamic flow with back-and-forth
+        if decision_context['iteration_count'] < 3:
             return 'data_collection'
         elif decision_context['analysis_quality'] == 0:
             return 'data_analysis'
-        elif decision_context['iteration_count'] < 8:
-            return 'enhance_analysis'
-        else:
+        elif decision_context['iteration_count'] < 5:
+            return 'data_collection'  # Loop back for more data
+        elif decision_context['iteration_count'] < 7:
+            return 'data_analysis'  # Loop back for more analysis
+        elif decision_context['iteration_count'] < 9:
             return 'report_synthesis'
+        else:
+            return 'end'
 
 
 def _assess_data_completeness(state: dict) -> str:
@@ -242,8 +263,9 @@ def run_truly_dynamic_research(query: str, interactive_mode: bool = False):
         "current_agent": "",
         "agent_messages": [],
         "iteration_count": 0,
-        "max_iterations": 12,
-        "research_context": {}
+        "max_iterations": 15,
+        "research_context": {},
+        "agent_call_counts": {"data_collector": 0, "data_analyzer": 0, "report_synthesizer": 0}
     }
     
     # Dynamic workflow loop
@@ -502,7 +524,7 @@ This agent shows how agents can delegate and coordinate tasks.
             
             research_data = state.get("research_data", {})
             
-            # Collect data for up to 3 queries per iteration to allow more back-and-forth
+            # Collect data for up to 4 queries per iteration to allow for back-and-forth
             # If we have fallback entities, create proper search queries for CRM tools
             if not search_queries or (len(search_queries) == 1 and search_queries[0]["entity"] == "Unknown"):
                 # Create proper CRM search queries
@@ -514,7 +536,15 @@ This agent shows how agents can delegate and coordinate tasks.
                 ]
                 state["research_context"]["research_plan"] = {"search_queries": search_queries}
             
-            queries_to_process = search_queries[len(research_data):len(research_data)+3]
+            # Calculate how many queries we've processed so far
+            total_queries_processed = sum(len(data) for data in research_data.values())
+            
+            # Ensure we collect data for all 3 CRM entities (HubSpot, Zoho, Salesforce)
+            # Each entity has 4 focus areas, so we need 12 total queries
+            if total_queries_processed < 12:  # 3 entities * 4 focus areas each
+                queries_to_process = search_queries[total_queries_processed:total_queries_processed+4]
+            else:
+                queries_to_process = []  # All queries processed
             
             for i, query_info in enumerate(queries_to_process, 1):
                 entity = query_info["entity"]
@@ -538,6 +568,7 @@ This agent shows how agents can delegate and coordinate tasks.
             
             state["research_data"] = research_data
             state["current_agent"] = "data_collector"
+            state["agent_call_counts"]["data_collector"] += 1
             state["agent_messages"].append(f"Data Collector: Collected data for {len(research_data)} entities")
             
             console.print(f"✅ Data collection completed!")
@@ -597,9 +628,9 @@ This agent shows true reasoning capabilities across different domains.
             
             analysis_results = state.get("analysis_results", {})
             
-            # Analyze all entities in research data, even if already analyzed (for enhancement)
+            # Analyze all entities in research data that haven't been analyzed yet
             for entity in research_data:
-                if entity not in analysis_results or state.get("iteration_count", 0) > 4:
+                if entity not in analysis_results:
                     entity_data = research_data[entity]
                     
                     console.print(f"   🔍 Analyzing {entity}...")
@@ -648,6 +679,7 @@ This agent shows true reasoning capabilities across different domains.
             
             state["analysis_results"] = analysis_results
             state["current_agent"] = "data_analyzer"
+            state["agent_call_counts"]["data_analyzer"] += 1
             state["agent_messages"].append(f"Data Analyzer: Analyzed data for {len(analysis_results)} entities")
             
             console.print(f"✅ Data analysis completed!")
@@ -711,19 +743,29 @@ This agent demonstrates the power of LLM-driven report generation.
             Research Type: {research_context.get('research_type', 'analysis')}
             Output Format: {output_format}
             
-            Analysis Results: {json.dumps(analysis_results, indent=2)[:3000]}...
+            Analysis Results: {json.dumps(analysis_results, indent=2)}
             
             Create a professional, comprehensive {output_format} that:
             1. Addresses the original query completely
             2. Synthesizes all analysis findings
             3. Includes actionable insights and recommendations
             4. Is well-structured and easy to understand
-            5. Covers ALL entities mentioned in the original query
-            6. Provides detailed comparisons and analysis
-            7. Includes specific pricing, features, and limitations
+            5. Covers ALL entities mentioned in the original query (HubSpot, Zoho, Salesforce)
+            6. Provides detailed comparisons and analysis for ALL 3 CRM tools
+            7. Includes specific pricing, features, and limitations for EACH platform
             8. Offers clear recommendations for different business types
+            9. NO CHARACTER LIMIT - make it as comprehensive as needed
+            10. Ensure equal coverage of HubSpot, Zoho, AND Salesforce
             
-            IMPORTANT: This report must be comprehensive and detailed. Aim for at least 5000+ characters.
+            CRITICAL: The report must include detailed information about ALL THREE CRM tools:
+            - HubSpot: Include all pricing tiers, features, integrations, limitations
+            - Zoho: Include all pricing tiers, features, integrations, limitations  
+            - Salesforce: Include all pricing tiers, features, integrations, limitations
+            - Comparative analysis across all three platforms
+            - Side-by-side feature comparisons
+            - Detailed recommendations for different business sizes
+            
+            IMPORTANT: This report must be comprehensive and detailed. NO CHARACTER LIMIT.
             Make this report detailed, professional, and valuable for decision-making.
             """
             
@@ -735,6 +777,7 @@ This agent demonstrates the power of LLM-driven report generation.
                 
                 state["final_report"] = response.content
                 state["current_agent"] = "report_synthesizer"
+                state["agent_call_counts"]["report_synthesizer"] += 1
                 state["agent_messages"].append("Report Synthesizer: Generated comprehensive report")
                 
                 console.print(f"✅ Report synthesis completed!")
@@ -745,6 +788,7 @@ This agent demonstrates the power of LLM-driven report generation.
             except Exception as e:
                 state["final_report"] = f"Report generation failed: {e}"
                 state["current_agent"] = "report_synthesizer"
+                state["agent_call_counts"]["report_synthesizer"] += 1
                 state["agent_messages"].append(f"Report Synthesizer: Failed to generate report: {e}")
                 console.print(f"❌ Report synthesis failed: {e}")
                 last_result = f"Report synthesis failed: {e}"
@@ -766,18 +810,18 @@ This agent demonstrates the power of LLM-driven report generation.
                 show_agent_transfer("Report Synthesizer", "Data Collector", "Orchestrator decided to collect more data")
                 current_step = "data_collection"  # Loop back for more research
             elif decision == "end":
-                # Only end if we have comprehensive results
-                if len(state.get("analysis_results", {})) >= 2 and len(state.get("final_report", "")) > 4000:
+                # End if we have comprehensive results and enough iterations
+                if len(state.get("analysis_results", {})) >= 2 and len(state.get("final_report", "")) > 4000 and state.get("iteration_count", 0) >= 6:
                     break
                 else:
-                    # Force more iterations if results are not comprehensive enough
-                    decision = "enhance_analysis"
-                    show_agent_transfer("Report Synthesizer", "Data Analyzer", "Orchestrator forced enhancement - results not comprehensive enough")
-                    current_step = "data_analysis"
+                    # Force more data collection if results are not comprehensive enough
+                    decision = "data_collection"
+                    show_agent_transfer("Report Synthesizer", "Data Collector", "Orchestrator forced data collection - need more entities")
+                    current_step = "data_collection"
             else:
-                # Default to enhancement instead of ending
-                show_agent_transfer("Report Synthesizer", "Data Analyzer", "Orchestrator default to enhancement")
-                current_step = "data_analysis"
+                # Default to data collection for more back-and-forth
+                show_agent_transfer("Report Synthesizer", "Data Collector", "Orchestrator default to data collection")
+                current_step = "data_collection"
             
             pause_for_explanation("TRANSITION", f"Press Enter to continue with {decision.upper()}...", interactive_mode)
     
@@ -796,6 +840,9 @@ This agent demonstrates the power of LLM-driven report generation.
     console.print(f"\n🤖 Agent Communication Log:")
     for i, message in enumerate(state.get('agent_messages', []), 1):
         console.print(f"  {i}. {message}")
+    
+    # Show complete agent transfer chain
+    show_agent_transfer_chain(state.get('agent_messages', []))
     
     console.print(f"\n📁 Check the 'results' folder for generated files")
     console.print("🎪 Perfect for demonstrating truly dynamic agentic AI capabilities!")
