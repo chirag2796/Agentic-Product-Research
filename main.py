@@ -107,6 +107,16 @@ def orchestrator_decision(orchestrator, state: dict, last_agent_result: str) -> 
     """Make dynamic orchestrator decisions based on agent results using LLM"""
     from langchain_core.messages import HumanMessage
     
+    # Extract target entities from parsed entities (filter out generic terms)
+    parsed_entities = state.get("parsed_entities", [])
+    generic_terms = [
+        "tools", "businesses", "small to mid-size B2B businesses", "small to mid-size businesses", 
+        "B2B businesses", "CRM tools", "accounting tools", "software", "platforms", "solutions",
+        "systems", "applications", "products", "services", "companies", "organizations"
+    ]
+    target_entities = [entity for entity in parsed_entities if entity.lower() not in [term.lower() for term in generic_terms]]
+    target_entities_count = len(target_entities) if target_entities else 3  # Default to 3 if no entities parsed
+    
     # Prepare context for orchestrator decision
     decision_context = {
         "iteration_count": state.get("iteration_count", 0),
@@ -118,7 +128,9 @@ def orchestrator_decision(orchestrator, state: dict, last_agent_result: str) -> 
         "validation_status": "validation_results" in state,
         "data_completeness": _assess_data_completeness(state),
         "report_quality": "final_report" in state and len(state.get("final_report", "")) > 1000,
-        "agent_call_counts": state.get("agent_call_counts", {"data_collector": 0, "data_analyzer": 0, "report_synthesizer": 0})
+        "agent_call_counts": state.get("agent_call_counts", {"data_collector": 0, "data_analyzer": 0, "report_synthesizer": 0}),
+        "target_entities_count": target_entities_count,
+        "target_entities": target_entities
     }
     
     # Enhanced decision prompt for truly dynamic behavior
@@ -130,6 +142,8 @@ def orchestrator_decision(orchestrator, state: dict, last_agent_result: str) -> 
     - Last Agent: {decision_context['last_agent']}
     - Research Data Quality: {decision_context['research_data_quality']} entities
     - Analysis Quality: {decision_context['analysis_quality']} entities
+    - Target Entities Count: {decision_context['target_entities_count']} entities
+    - Target Entities: {decision_context['target_entities']}
     - Validation Status: {decision_context['validation_status']}
     - Data Completeness: {decision_context['data_completeness']}
     - Report Quality: {decision_context['report_quality']}
@@ -150,23 +164,23 @@ def orchestrator_decision(orchestrator, state: dict, last_agent_result: str) -> 
     10. "end" - If research is complete and satisfactory
     
     Decision Criteria (SHOW NON-SEQUENTIAL ORCHESTRATION WITH CONTROLLED LOOPS):
-    - If research data < 3 entities AND data_collector called < 4 times → data_collection (need all 3 CRM tools)
+    - If research data < target_entities_count AND data_collector called < 4 times → data_collection (need all target entities)
     - If analysis is missing for any researched entity AND data_analyzer called < 4 times → data_analysis
-    - If we have 3 entities researched but < 3 analyzed AND data_analyzer called < 4 times → data_analysis
-    - If we have 3 entities analyzed but report is missing AND report_synthesizer called < 3 times → report_synthesis
-    - If report exists but doesn't cover all 3 entities AND data_collector called < 4 times → data_collection (get missing entities)
-    - If report exists and covers all 3 entities AND iteration count >= 8 → end
+    - If we have target_entities_count researched but < target_entities_count analyzed AND data_analyzer called < 4 times → data_analysis
+    - If we have target_entities_count analyzed but report is missing AND report_synthesizer called < 3 times → report_synthesis
+    - If report exists but doesn't cover all target entities AND data_collector called < 4 times → data_collection (get missing entities)
+    - If report exists and covers all target entities AND iteration count >= 8 → end
     - If iteration count > 15 → end (prevent infinite loops)
-    - If all 3 entities are researched, analyzed, and reported → end
+    - If all target entities are researched, analyzed, and reported → end
     
     IMPORTANT: Show TRUE DYNAMIC ORCHESTRATION by:
-    1. Collect data for all 3 CRM entities (HubSpot, Zoho, Salesforce) - 3-4 data collection cycles
-    2. Analyze data for all 3 CRM entities - 3-4 data analysis cycles  
-    3. Generate comprehensive report covering all 3 entities - 2-3 report synthesis cycles
+    1. Collect data for all target entities - 3-4 data collection cycles
+    2. Analyze data for all target entities - 3-4 data analysis cycles  
+    3. Generate comprehensive report covering all target entities - 2-3 report synthesis cycles
     4. Show 3-4 back-and-forth cycles to demonstrate non-sequential behavior
     5. Aim for 10-12 total iterations with meaningful loops
-    6. Focus on getting complete data for all 3 CRM tools (HubSpot, Zoho, Salesforce)
-    7. Ensure report covers all 3 entities with detailed comparison
+    6. Focus on getting complete data for all target entities
+    7. Ensure report covers all target entities with detailed comparison
     8. NO CHARACTER LIMITS on reports - make them comprehensive
     
     Respond with ONLY the action name (e.g., "data_collection", "enhance_analysis", "additional_research", etc.)
@@ -333,24 +347,39 @@ This agent is generic and can handle any type of research query.
                 elif "```" in content:
                     content = content.split("```")[1].split("```")[0].strip()
                 
+                # Find the JSON object boundaries
+                if content.startswith("{"):
+                    # Find the matching closing brace
+                    brace_count = 0
+                    json_end = 0
+                    for i, char in enumerate(content):
+                        if char == "{":
+                            brace_count += 1
+                        elif char == "}":
+                            brace_count -= 1
+                            if brace_count == 0:
+                                json_end = i + 1
+                                break
+                    content = content[:json_end]
+                
                 parsed_data = json.loads(content)
                 
                 state["parsed_entities"] = parsed_data.get("entities", [])
-                state["research_focus_areas"] = parsed_data.get("focus_areas", [])
+                state["parsed_focus_areas"] = parsed_data.get("focus_areas", [])
                 state["research_context"] = {
                     "research_type": parsed_data.get("research_type", "analysis"),
                     "output_format": parsed_data.get("output_format", "report"),
                     "original_query": query
                 }
                 state["current_agent"] = "query_parser"
-                state["agent_messages"].append(f"Query Parser: Parsed query and identified {len(state['parsed_entities'])} entities and {len(state['research_focus_areas'])} focus areas")
+                state["agent_messages"].append(f"Query Parser: Parsed query and identified {len(state['parsed_entities'])} entities and {len(state['parsed_focus_areas'])} focus areas")
                 
                 console.print(f"✅ Query parsed successfully!")
                 console.print(f"   • Entities: {', '.join(state['parsed_entities'])}")
-                console.print(f"   • Focus Areas: {', '.join(state['research_focus_areas'])}")
+                console.print(f"   • Focus Areas: {', '.join(state['parsed_focus_areas'])}")
                 console.print(f"   • Research Type: {state['research_context']['research_type']}")
                 
-                last_result = f"Query parsed successfully - {len(state['parsed_entities'])} entities, {len(state['research_focus_areas'])} focus areas"
+                last_result = f"Query parsed successfully - {len(state['parsed_entities'])} entities, {len(state['parsed_focus_areas'])} focus areas"
                 
             except Exception as e:
                 console.print(f"❌ Query parsing failed: {e}")
@@ -539,24 +568,50 @@ This agent shows how agents can delegate and coordinate tasks.
             research_data = state.get("research_data", {})
             
             # Collect data for up to 4 queries per iteration to allow for back-and-forth
-            # If we have fallback entities, create proper search queries for CRM tools
+            # If we have fallback entities, create proper search queries using parsed entities
             if not search_queries or (len(search_queries) == 1 and search_queries[0]["entity"] == "Unknown"):
-                # Create proper CRM search queries
-                crm_entities = ["HubSpot", "Zoho", "Salesforce"]
-                crm_focus_areas = ["pricing", "features", "integrations", "limitations"]
+                # Extract target entities from parsed entities (filter out generic terms)
+                parsed_entities = state.get("parsed_entities", [])
+                generic_terms = [
+                    "tools", "businesses", "small to mid-size B2B businesses", "small to mid-size businesses", 
+                    "B2B businesses", "CRM tools", "accounting tools", "software", "platforms", "solutions",
+                    "systems", "applications", "products", "services", "companies", "organizations"
+                ]
+                target_entities = [entity for entity in parsed_entities if entity.lower() not in [term.lower() for term in generic_terms]]
+                
+                # If no specific entities found, use a generic fallback
+                if not target_entities:
+                    target_entities = ["Entity1", "Entity2", "Entity3"]  # Generic fallback
+                
+                # Get focus areas from parsed focus areas or use defaults
+                parsed_focus_areas = state.get("parsed_focus_areas", [])
+                if parsed_focus_areas and parsed_focus_areas != ["general"]:
+                    focus_areas = parsed_focus_areas
+                else:
+                    focus_areas = ["pricing", "features", "integrations", "limitations"]
+                
+                # Create search queries for any domain
                 search_queries = [
-                    {"entity": entity, "focus": focus, "query": f"{entity} CRM {focus} small business"}
-                    for entity in crm_entities for focus in crm_focus_areas
+                    {"entity": entity, "focus": focus, "query": f"{entity} {focus} small business"}
+                    for entity in target_entities for focus in focus_areas
                 ]
                 state["research_context"]["research_plan"] = {"search_queries": search_queries}
             
             # Calculate how many queries we've processed so far
             total_queries_processed = sum(len(data) for data in research_data.values())
             
-            # Ensure we collect data for all 3 CRM entities (HubSpot, Zoho, Salesforce)
-            # Each entity has 4 focus areas, so we need 12 total queries
-            if total_queries_processed < 12:  # 3 entities * 4 focus areas each
-                queries_to_process = search_queries[total_queries_processed:total_queries_processed+4]
+            # Ensure we collect data for all target entities
+            # Calculate expected total queries based on target entities and focus areas
+            target_entities_count = len(target_entities) if 'target_entities' in locals() else 3
+            focus_areas_count = len(focus_areas) if 'focus_areas' in locals() else 4
+            expected_total_queries = target_entities_count * focus_areas_count
+            
+            if total_queries_processed < expected_total_queries:
+                # Process one complete entity at a time (all focus areas for one entity)
+                current_entity_index = total_queries_processed // focus_areas_count
+                entity_start_index = current_entity_index * focus_areas_count
+                entity_end_index = entity_start_index + focus_areas_count
+                queries_to_process = search_queries[entity_start_index:entity_end_index]
             else:
                 queries_to_process = []  # All queries processed
             
@@ -756,6 +811,31 @@ This agent demonstrates the power of LLM-driven report generation.
             research_context = state["research_context"]
             output_format = research_context.get("output_format", "report")
             
+            # Extract target entities for generic report generation
+            parsed_entities = state.get("parsed_entities", [])
+            generic_terms = [
+                "tools", "businesses", "small to mid-size B2B businesses", "small to mid-size businesses", 
+                "B2B businesses", "CRM tools", "accounting tools", "software", "platforms", "solutions",
+                "systems", "applications", "products", "services", "companies", "organizations"
+            ]
+            target_entities = [entity for entity in parsed_entities if entity.lower() not in [term.lower() for term in generic_terms]]
+            
+            # If no specific entities found, use a generic fallback
+            if not target_entities:
+                target_entities = ["Entity1", "Entity2", "Entity3"]  # Generic fallback
+            
+            # Get focus areas for generic instructions
+            parsed_focus_areas = state.get("parsed_focus_areas", [])
+            if parsed_focus_areas and parsed_focus_areas != ["general"]:
+                focus_areas = parsed_focus_areas
+            else:
+                focus_areas = ["pricing", "features", "integrations", "limitations"]
+            
+            # Create entity-specific instructions
+            entity_list = ", ".join(target_entities)
+            entity_count = len(target_entities)
+            focus_areas_list = ", ".join(focus_areas)
+            
             synthesis_prompt = f"""
             You are a research report synthesizer. Create a comprehensive {output_format} based on:
             
@@ -770,18 +850,16 @@ This agent demonstrates the power of LLM-driven report generation.
             2. Synthesizes all analysis findings
             3. Includes actionable insights and recommendations
             4. Is well-structured and easy to understand
-            5. Covers ALL entities mentioned in the original query (HubSpot, Zoho, Salesforce)
-            6. Provides detailed comparisons and analysis for ALL 3 CRM tools
-            7. Includes specific pricing, features, and limitations for EACH platform
+            5. Covers ALL entities mentioned in the original query ({entity_list})
+            6. Provides detailed comparisons and analysis for ALL {entity_count} entities
+            7. Includes specific {focus_areas_list} for EACH entity
             8. Offers clear recommendations for different business types
             9. NO CHARACTER LIMIT - make it as comprehensive as needed
-            10. Ensure equal coverage of HubSpot, Zoho, AND Salesforce
+            10. Ensure equal coverage of {entity_list}
             
-            CRITICAL: The report must include detailed information about ALL THREE CRM tools:
-            - HubSpot: Include all pricing tiers, features, integrations, limitations
-            - Zoho: Include all pricing tiers, features, integrations, limitations  
-            - Salesforce: Include all pricing tiers, features, integrations, limitations
-            - Comparative analysis across all three platforms
+            CRITICAL: The report must include detailed information about ALL {entity_count} entities:
+            {chr(10).join([f"- {entity}: Include all {focus_areas_list}" for entity in target_entities])}
+            - Comparative analysis across all {entity_count} entities
             - Side-by-side feature comparisons
             - Detailed recommendations for different business sizes
             
