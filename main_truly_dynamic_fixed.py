@@ -22,12 +22,28 @@ def pause_for_explanation(title: str, explanation: str, interactive_mode: bool):
     if interactive_mode:
         console.print(f"\n[bold blue]STAGE: {title}[/bold blue]")
         console.print(Panel(explanation, title="Explanation", border_style="blue"))
-        input("\nPress Enter to continue (): ")
+        input("\nPress Enter to continue: ")
 
 
 def show_agent_working(agent_name: str, action: str):
     """Show agent working status"""
     console.print(f"\n🤖 {agent_name}: {action}")
+
+
+def show_llm_call(prompt: str, response: str, agent_name: str):
+    """Show full LLM input and output for transparency"""
+    console.print(f"\n📝 **{agent_name} LLM CALL:**")
+    console.print(f"**INPUT PROMPT:**")
+    console.print(f"[dim]{prompt[:500]}{'...' if len(prompt) > 500 else ''}[/dim]")
+    console.print(f"\n**LLM RESPONSE:**")
+    console.print(f"[green]{response[:500]}{'...' if len(response) > 500 else ''}[/green]")
+
+
+def show_agent_transfer(from_agent: str, to_agent: str, reason: str = ""):
+    """Show clear agent transfer with reason"""
+    console.print(f"\n🔄 **CONTROL TRANSFER:** {from_agent} → {to_agent}")
+    if reason:
+        console.print(f"   Reason: {reason}")
 
 
 def show_state_info(state: dict, interactive_mode: bool):
@@ -133,6 +149,10 @@ def orchestrator_decision(orchestrator, state: dict, last_agent_result: str) -> 
     
     try:
         response = orchestrator.llm.invoke([HumanMessage(content=decision_prompt)])
+        
+        # Show full LLM call for orchestrator decisions
+        show_llm_call(decision_prompt, response.content, "ORCHESTRATOR")
+        
         decision = response.content.strip().lower()
         
         # Don't add orchestrator decisions to agent messages - they're internal
@@ -263,6 +283,10 @@ This agent is completely generic and can handle any type of research query.
             
             try:
                 response = orchestrator.llm.invoke([{"role": "user", "content": parse_prompt}])
+                
+                # Show full LLM call
+                show_llm_call(parse_prompt, response.content, "Query Parser")
+                
                 # Clean the response to extract JSON
                 content = response.content.strip()
                 if "```json" in content:
@@ -308,17 +332,23 @@ This agent is completely generic and can handle any type of research query.
             console.print(f"   Based on: {state['current_agent']} result")
             console.print(f"   Iteration: {state['iteration_count']}/{state['max_iterations']}")
             
+            # Show agent transfer
             if decision == "research_planning":
+                show_agent_transfer("Query Parser", "Research Planner", "Orchestrator decided to create research plan")
                 current_step = "research_planning"
             elif decision == "data_collection":
+                show_agent_transfer("Query Parser", "Data Collector", "Orchestrator decided to collect data")
                 current_step = "data_collection"
             elif decision == "data_analysis":
+                show_agent_transfer("Query Parser", "Data Analyzer", "Orchestrator decided to analyze data")
                 current_step = "data_analysis"
             elif decision == "report_synthesis":
+                show_agent_transfer("Query Parser", "Report Synthesizer", "Orchestrator decided to synthesize report")
                 current_step = "report_synthesis"
             elif decision == "end":
                 break
             else:
+                show_agent_transfer("Query Parser", "Research Planner", "Orchestrator default decision")
                 current_step = "research_planning"  # Default
             
             pause_for_explanation("TRANSITION", f"Press Enter to continue with {decision.upper()}...", interactive_mode)
@@ -372,6 +402,10 @@ This agent demonstrates true reasoning and planning capabilities.
             
             try:
                 response = orchestrator.llm.invoke([{"role": "user", "content": planning_prompt}])
+                
+                # Show full LLM call
+                show_llm_call(planning_prompt, response.content, "Research Planner")
+                
                 # Clean the response to extract JSON
                 content = response.content.strip()
                 if "```json" in content:
@@ -418,15 +452,20 @@ This agent demonstrates true reasoning and planning capabilities.
             console.print(f"   Based on: {state['current_agent']} result")
             console.print(f"   Iteration: {state['iteration_count']}/{state['max_iterations']}")
             
+            # Show agent transfer
             if decision == "data_collection":
+                show_agent_transfer("Research Planner", "Data Collector", "Orchestrator decided to collect data")
                 current_step = "data_collection"
             elif decision == "data_analysis":
+                show_agent_transfer("Research Planner", "Data Analyzer", "Orchestrator decided to analyze data")
                 current_step = "data_analysis"
             elif decision == "report_synthesis":
+                show_agent_transfer("Research Planner", "Report Synthesizer", "Orchestrator decided to synthesize report")
                 current_step = "report_synthesis"
             elif decision == "end":
                 break
             else:
+                show_agent_transfer("Research Planner", "Data Collector", "Orchestrator default decision")
                 current_step = "data_collection"  # Default
             
             pause_for_explanation("TRANSITION", f"Press Enter to continue with {decision.upper()}...", interactive_mode)
@@ -495,15 +534,20 @@ This agent shows how agents can delegate and coordinate tasks.
             console.print(f"   Based on: {state['current_agent']} result")
             console.print(f"   Iteration: {state['iteration_count']}/{state['max_iterations']}")
             
+            # Show agent transfer
             if decision == "data_analysis":
+                show_agent_transfer("Data Collector", "Data Analyzer", "Orchestrator decided to analyze collected data")
                 current_step = "data_analysis"
             elif decision == "additional_research":
+                show_agent_transfer("Data Collector", "Data Collector", "Orchestrator decided to collect more data")
                 current_step = "data_collection"  # Loop back for more research
             elif decision == "report_synthesis":
+                show_agent_transfer("Data Collector", "Report Synthesizer", "Orchestrator decided to synthesize report")
                 current_step = "report_synthesis"
             elif decision == "end":
                 break
             else:
+                show_agent_transfer("Data Collector", "Data Analyzer", "Orchestrator default decision")
                 current_step = "data_analysis"  # Default
             
             pause_for_explanation("TRANSITION", f"Press Enter to continue with {decision.upper()}...", interactive_mode)
@@ -561,6 +605,10 @@ This agent shows true reasoning capabilities across different domains.
                     
                     try:
                         response = orchestrator.llm.invoke([{"role": "user", "content": analysis_prompt}])
+                        
+                        # Show full LLM call
+                        show_llm_call(analysis_prompt, response.content, f"Data Analyzer ({entity})")
+                        
                         analysis_results[entity] = {
                             "analysis": response.content,
                             "focus_areas_covered": list(entity_data.keys()),
@@ -594,15 +642,20 @@ This agent shows true reasoning capabilities across different domains.
             console.print(f"   Based on: {state['current_agent']} result")
             console.print(f"   Iteration: {state['iteration_count']}/{state['max_iterations']}")
             
+            # Show agent transfer
             if decision == "enhance_analysis":
+                show_agent_transfer("Data Analyzer", "Data Analyzer", "Orchestrator decided to enhance analysis")
                 current_step = "data_analysis"  # Loop back for enhanced analysis
             elif decision == "additional_research":
+                show_agent_transfer("Data Analyzer", "Data Collector", "Orchestrator decided to collect more data")
                 current_step = "data_collection"  # Loop back for more research
             elif decision == "report_synthesis":
+                show_agent_transfer("Data Analyzer", "Report Synthesizer", "Orchestrator decided to synthesize report")
                 current_step = "report_synthesis"
             elif decision == "end":
                 break
             else:
+                show_agent_transfer("Data Analyzer", "Report Synthesizer", "Orchestrator default decision")
                 current_step = "report_synthesis"  # Default
             
             pause_for_explanation("TRANSITION", f"Press Enter to continue with {decision.upper()}...", interactive_mode)
@@ -649,6 +702,10 @@ This agent demonstrates the power of LLM-driven report generation.
             
             try:
                 response = orchestrator.llm.invoke([{"role": "user", "content": synthesis_prompt}])
+                
+                # Show full LLM call
+                show_llm_call(synthesis_prompt, response.content, "Report Synthesizer")
+                
                 state["final_report"] = response.content
                 state["current_agent"] = "report_synthesizer"
                 state["agent_messages"].append("Report Synthesizer: Generated comprehensive report")
@@ -674,9 +731,12 @@ This agent demonstrates the power of LLM-driven report generation.
             console.print(f"   Based on: {state['current_agent']} result")
             console.print(f"   Iteration: {state['iteration_count']}/{state['max_iterations']}")
             
+            # Show agent transfer
             if decision == "enhance_analysis":
+                show_agent_transfer("Report Synthesizer", "Data Analyzer", "Orchestrator decided to enhance analysis")
                 current_step = "data_analysis"  # Loop back for enhanced analysis
             elif decision == "additional_research":
+                show_agent_transfer("Report Synthesizer", "Data Collector", "Orchestrator decided to collect more data")
                 current_step = "data_collection"  # Loop back for more research
             elif decision == "end":
                 break
