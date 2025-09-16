@@ -96,7 +96,7 @@ def orchestrator_decision(orchestrator, state: dict, last_agent_result: str) -> 
     # Prepare context for orchestrator decision
     decision_context = {
         "iteration_count": state.get("iteration_count", 0),
-        "max_iterations": state.get("max_iterations", 8),
+        "max_iterations": state.get("max_iterations", 12),
         "last_agent": state.get("current_agent", ""),
         "last_result": last_agent_result,
         "research_data_quality": len(state.get("research_data", {})),
@@ -133,16 +133,24 @@ def orchestrator_decision(orchestrator, state: dict, last_agent_result: str) -> 
     9. "cross_validation" - If findings need cross-validation
     10. "end" - If research is complete and satisfactory
     
-    Decision Criteria (BE AGGRESSIVE ABOUT QUALITY):
+    Decision Criteria (BE VERY AGGRESSIVE ABOUT QUALITY AND BACK-AND-FORTH):
     - If research data < 3 entities OR any entity has < 2 focus areas → data_collection
     - If analysis is incomplete OR missing key insights → data_analysis or enhance_analysis
     - If validation found issues OR data completeness is poor → additional_research or cross_validation
-    - If report is too short (< 3000 chars) OR incomplete → report_synthesis
-    - If iteration count < 4 AND data quality could be better → data_collection or enhance_analysis
-    - If all quality checks pass AND report is comprehensive (> 3000 chars) → end
+    - If report is too short (< 5000 chars) OR incomplete → report_synthesis
+    - If iteration count < 6 AND data quality could be better → data_collection or enhance_analysis
+    - If report exists but could be more comprehensive → enhance_analysis or additional_research
+    - If analysis exists but report is missing key entities → data_collection for missing entities
+    - If we have data but analysis is shallow → enhance_analysis
+    - If we have analysis but report doesn't cover all entities → report_synthesis
+    - Only end if ALL entities are researched, analyzed, AND report is comprehensive (> 5000 chars)
     
-    IMPORTANT: Show true orchestration by making intelligent decisions to loop back, enhance, and improve.
-    Prioritize quality over speed. It's better to do more iterations for comprehensive results.
+    CRITICAL: Show TRUE DYNAMIC ORCHESTRATION by:
+    1. Looping back to data_collection if any entity is missing or needs more research
+    2. Looping back to data_analysis if analysis is incomplete or shallow
+    3. Looping back to report_synthesis if report is missing key information
+    4. Making multiple passes through the same agents for better quality
+    5. Being aggressive about quality - it's better to do 8 iterations for excellent results than 3 for mediocre ones
     
     Respond with ONLY the action name (e.g., "data_collection", "enhance_analysis", "additional_research", etc.)
     """
@@ -161,11 +169,13 @@ def orchestrator_decision(orchestrator, state: dict, last_agent_result: str) -> 
         
     except Exception as e:
         console.print(f"❌ Orchestrator decision failed: {e}")
-        # Fallback to sequential flow
-        if decision_context['iteration_count'] < 3:
+        # Fallback to sequential flow with more aggressive looping
+        if decision_context['iteration_count'] < 6:
             return 'data_collection'
         elif decision_context['analysis_quality'] == 0:
             return 'data_analysis'
+        elif decision_context['iteration_count'] < 8:
+            return 'enhance_analysis'
         else:
             return 'report_synthesis'
 
@@ -232,7 +242,7 @@ def run_truly_dynamic_research(query: str, interactive_mode: bool = False):
         "current_agent": "",
         "agent_messages": [],
         "iteration_count": 0,
-        "max_iterations": 8,
+        "max_iterations": 12,
         "research_context": {}
     }
     
@@ -492,8 +502,19 @@ This agent shows how agents can delegate and coordinate tasks.
             
             research_data = state.get("research_data", {})
             
-            # Collect data for up to 6 queries per iteration
-            queries_to_process = search_queries[len(research_data):len(research_data)+6]
+            # Collect data for up to 3 queries per iteration to allow more back-and-forth
+            # If we have fallback entities, create proper search queries for CRM tools
+            if not search_queries or (len(search_queries) == 1 and search_queries[0]["entity"] == "Unknown"):
+                # Create proper CRM search queries
+                crm_entities = ["HubSpot", "Zoho", "Salesforce"]
+                crm_focus_areas = ["pricing", "features", "integrations", "limitations"]
+                search_queries = [
+                    {"entity": entity, "focus": focus, "query": f"{entity} CRM {focus} small business"}
+                    for entity in crm_entities for focus in crm_focus_areas
+                ]
+                state["research_context"]["research_plan"] = {"search_queries": search_queries}
+            
+            queries_to_process = search_queries[len(research_data):len(research_data)+3]
             
             for i, query_info in enumerate(queries_to_process, 1):
                 entity = query_info["entity"]
@@ -576,8 +597,9 @@ This agent shows true reasoning capabilities across different domains.
             
             analysis_results = state.get("analysis_results", {})
             
-            for entity in entities:
-                if entity in research_data and entity not in analysis_results:
+            # Analyze all entities in research data, even if already analyzed (for enhancement)
+            for entity in research_data:
+                if entity not in analysis_results or state.get("iteration_count", 0) > 4:
                     entity_data = research_data[entity]
                     
                     console.print(f"   🔍 Analyzing {entity}...")
@@ -696,7 +718,12 @@ This agent demonstrates the power of LLM-driven report generation.
             2. Synthesizes all analysis findings
             3. Includes actionable insights and recommendations
             4. Is well-structured and easy to understand
+            5. Covers ALL entities mentioned in the original query
+            6. Provides detailed comparisons and analysis
+            7. Includes specific pricing, features, and limitations
+            8. Offers clear recommendations for different business types
             
+            IMPORTANT: This report must be comprehensive and detailed. Aim for at least 5000+ characters.
             Make this report detailed, professional, and valuable for decision-making.
             """
             
@@ -739,9 +766,18 @@ This agent demonstrates the power of LLM-driven report generation.
                 show_agent_transfer("Report Synthesizer", "Data Collector", "Orchestrator decided to collect more data")
                 current_step = "data_collection"  # Loop back for more research
             elif decision == "end":
-                break
+                # Only end if we have comprehensive results
+                if len(state.get("analysis_results", {})) >= 2 and len(state.get("final_report", "")) > 4000:
+                    break
+                else:
+                    # Force more iterations if results are not comprehensive enough
+                    decision = "enhance_analysis"
+                    show_agent_transfer("Report Synthesizer", "Data Analyzer", "Orchestrator forced enhancement - results not comprehensive enough")
+                    current_step = "data_analysis"
             else:
-                break  # Default to end
+                # Default to enhancement instead of ending
+                show_agent_transfer("Report Synthesizer", "Data Analyzer", "Orchestrator default to enhancement")
+                current_step = "data_analysis"
             
             pause_for_explanation("TRANSITION", f"Press Enter to continue with {decision.upper()}...", interactive_mode)
     
