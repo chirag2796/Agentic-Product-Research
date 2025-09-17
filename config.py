@@ -14,6 +14,7 @@ OPENROUTER_API_KEY = "sk-or-v1-8dc5e7e7f9ea68f2075c2ac7f6091b93b203ea84064123dd3
 # OpenRouter Configuration
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 OPENROUTER_MODEL = "anthropic/claude-3.5-sonnet"
+# OPENROUTER_MODEL = "google/gemini-2.5-pro"
 
 # Serper Configuration
 SERPER_BASE_URL = "https://google.serper.dev"
@@ -23,17 +24,21 @@ LOG_LEVEL = "INFO"
 MAX_RESEARCH_ITERATIONS = 3
 RESEARCH_TIMEOUT = 300
 
-# CRM Tools to Research
-CRM_TOOLS = ["HubSpot", "Zoho", "Salesforce"]
-
-# Research Focus Areas
-RESEARCH_AREAS = [
+# Default Research Configuration (can be overridden by query)
+DEFAULT_TOOLS = ["HubSpot", "Zoho", "Salesforce"]  # Example tools for demo
+DEFAULT_RESEARCH_AREAS = [
     "pricing",
     "features", 
     "integrations",
     "limitations"
 ]
 
-# Assignment Query
-ASSIGNMENT_QUERY = "We're evaluating Accounting tools. Give me a summarized comparison between QuickBooks Online, Xero, and Sage for small to mid-size B2B businesses. Focus on pricing, features, integrations, and limitations."
-# ASSIGNMENT_QUERY = "We're evaluating CRM tools. Give me a summarized comparison between HubSpot, Zoho, and Salesforce for small to mid-size B2B businesses. Focus on pricing, features, integrations, and limitations."
+# Example Queries for Testing
+EXAMPLE_QUERIES = {
+    "crm": "We're evaluating CRM tools. Give me a summarized comparison between HubSpot, Zoho, and Salesforce for small to mid-size B2B businesses. Focus on pricing, features, integrations, and limitations.",
+    "accounting": "We're evaluating Accounting tools. Give me a summarized comparison between QuickBooks Online, Xero, and Sage for small to mid-size B2B businesses. Focus on pricing, features, integrations, and limitations.",
+    "project_management": "We're evaluating Project Management tools. Give me a summarized comparison between Asana, Trello, and Monday.com for small to mid-size B2B businesses. Focus on pricing, features, integrations, and limitations."
+}
+
+# Default query for demo
+ASSIGNMENT_QUERY = EXAMPLE_QUERIES["crm"]
