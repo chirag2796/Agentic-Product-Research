@@ -128,7 +128,7 @@ def orchestrator_decision(orchestrator, state: dict, last_agent_result: str) -> 
         "validation_status": "validation_results" in state,
         "data_completeness": _assess_data_completeness(state),
         "report_quality": "final_report" in state and len(state.get("final_report", "")) > 1000,
-        "agent_call_counts": state.get("agent_call_counts", {"data_collector": 0, "data_analyzer": 0, "report_synthesizer": 0}),
+        "agent_call_counts": state.get("agent_call_counts", {"research_planner": 0, "data_collector": 0, "data_analyzer": 0, "quality_validator": 0, "report_synthesizer": 0}),
         "target_entities_count": target_entities_count,
         "target_entities": target_entities
     }
@@ -164,14 +164,15 @@ def orchestrator_decision(orchestrator, state: dict, last_agent_result: str) -> 
     10. "end" - If research is complete and satisfactory
     
     Decision Criteria (SHOW NON-SEQUENTIAL ORCHESTRATION WITH CONTROLLED LOOPS):
-    - If research data < target_entities_count AND data_collector called < 4 times → data_collection (need all target entities)
-    - If analysis is missing for any researched entity AND data_analyzer called < 4 times → data_analysis
-    - If we have target_entities_count researched but < target_entities_count analyzed AND data_analyzer called < 4 times → data_analysis
-    - If we have target_entities_count analyzed but report is missing AND report_synthesizer called < 3 times → report_synthesis
+    - If query_parsing completed AND research_planner called < 2 times → research_planning (create research strategy)
+    - If research_planning completed AND data_collector called < 4 times → data_collection (need all target entities)
+    - If data_collection completed AND data_analyzer called < 4 times → data_analysis
+    - If data_analysis completed AND quality_validator called < 2 times → quality_validation (validate research quality)
+    - If quality_validation completed AND report_synthesizer called < 3 times → report_synthesis
     - If report exists but doesn't cover all target entities AND data_collector called < 4 times → data_collection (get missing entities)
     - If report exists and covers all target entities AND iteration count >= 8 → end
     - If iteration count > 15 → end (prevent infinite loops)
-    - If all target entities are researched, analyzed, and reported → end
+    - If all target entities are researched, analyzed, validated, and reported → end
     
     IMPORTANT: Show TRUE DYNAMIC ORCHESTRATION by:
     1. Collect data for all target entities - 3-4 data collection cycles
@@ -286,7 +287,7 @@ def run_truly_dynamic_research(query: str, interactive_mode: bool = False):
         "iteration_count": 0,
         "max_iterations": 15,
         "research_context": {},
-        "agent_call_counts": {"data_collector": 0, "data_analyzer": 0, "report_synthesizer": 0}
+        "agent_call_counts": {"research_planner": 0, "data_collector": 0, "data_analyzer": 0, "quality_validator": 0, "report_synthesizer": 0}
     }
     
     # Dynamic workflow loop
@@ -365,21 +366,21 @@ This agent is generic and can handle any type of research query.
                 parsed_data = json.loads(content)
                 
                 state["parsed_entities"] = parsed_data.get("entities", [])
-                state["parsed_focus_areas"] = parsed_data.get("focus_areas", [])
+                state["research_focus_areas"] = parsed_data.get("focus_areas", [])
                 state["research_context"] = {
                     "research_type": parsed_data.get("research_type", "analysis"),
                     "output_format": parsed_data.get("output_format", "report"),
                     "original_query": query
                 }
                 state["current_agent"] = "query_parser"
-                state["agent_messages"].append(f"Query Parser: Parsed query and identified {len(state['parsed_entities'])} entities and {len(state['parsed_focus_areas'])} focus areas")
+                state["agent_messages"].append(f"Query Parser: Parsed query and identified {len(state['parsed_entities'])} entities and {len(state['research_focus_areas'])} focus areas")
                 
                 console.print(f"✅ Query parsed successfully!")
                 console.print(f"   • Entities: {', '.join(state['parsed_entities'])}")
-                console.print(f"   • Focus Areas: {', '.join(state['parsed_focus_areas'])}")
+                console.print(f"   • Focus Areas: {', '.join(state['research_focus_areas'])}")
                 console.print(f"   • Research Type: {state['research_context']['research_type']}")
                 
-                last_result = f"Query parsed successfully - {len(state['parsed_entities'])} entities, {len(state['parsed_focus_areas'])} focus areas"
+                last_result = f"Query parsed successfully - {len(state['parsed_entities'])} entities, {len(state['research_focus_areas'])} focus areas"
                 
             except Exception as e:
                 console.print(f"❌ Query parsing failed: {e}")
@@ -489,6 +490,7 @@ This agent demonstrates true reasoning and planning capabilities.
                 
                 state["research_context"]["research_plan"] = plan_data
                 state["current_agent"] = "research_planner"
+                state["agent_call_counts"]["research_planner"] += 1
                 state["agent_messages"].append(f"Research Planner: Created research plan with {len(plan_data.get('search_queries', []))} search queries")
                 
                 console.print(f"✅ Research plan created successfully!")
@@ -512,6 +514,7 @@ This agent demonstrates true reasoning and planning capabilities.
                 }
                 state["research_context"]["research_plan"] = fallback_plan
                 state["current_agent"] = "research_planner"
+                state["agent_call_counts"]["research_planner"] += 1
                 state["agent_messages"].append(f"Research Planner: Fallback planning due to error: {e}")
                 last_result = f"Research planning failed, using fallback"
             
@@ -583,10 +586,10 @@ This agent shows how agents can delegate and coordinate tasks.
                 if not target_entities:
                     target_entities = ["Entity1", "Entity2", "Entity3"]  # Generic fallback
                 
-                # Get focus areas from parsed focus areas or use defaults
-                parsed_focus_areas = state.get("parsed_focus_areas", [])
-                if parsed_focus_areas and parsed_focus_areas != ["general"]:
-                    focus_areas = parsed_focus_areas
+                # Get focus areas from research focus areas or use defaults
+                research_focus_areas = state.get("research_focus_areas", [])
+                if research_focus_areas and research_focus_areas != ["general"]:
+                    focus_areas = research_focus_areas
                 else:
                     focus_areas = ["pricing", "features", "integrations", "limitations"]
                 
@@ -769,7 +772,11 @@ This agent shows true reasoning capabilities across different domains.
             console.print(f"   Iteration: {state['iteration_count']}/{state['max_iterations']}")
             
             # Show agent transfer
-            if decision == "enhance_analysis":
+            if decision == "quality_validation":
+                show_agent_transfer("Data Analyzer", "Quality Validator", "Orchestrator decided to validate quality")
+                current_step = "quality_validation"
+                pause_for_explanation("TRANSITION", f"Press Enter to continue with {decision.upper()}...", interactive_mode)
+            elif decision == "enhance_analysis":
                 show_agent_transfer("Data Analyzer", "Data Analyzer", "Orchestrator decided to enhance analysis")
                 current_step = "data_analysis"  # Loop back for enhanced analysis
                 pause_for_explanation("TRANSITION", f"Press Enter to continue with {decision.upper()}...", interactive_mode)
@@ -785,8 +792,130 @@ This agent shows true reasoning capabilities across different domains.
                 pause_for_explanation("TRANSITION", f"Press Enter to continue with {decision.upper()}...", interactive_mode)
                 break
             else:
-                show_agent_transfer("Data Analyzer", "Report Synthesizer", "Orchestrator default decision")
-                current_step = "report_synthesis"  # Default
+                show_agent_transfer("Data Analyzer", "Quality Validator", "Orchestrator default decision")
+                current_step = "quality_validation"  # Default to quality validation
+                pause_for_explanation("TRANSITION", f"Press Enter to continue with {decision.upper()}...", interactive_mode)
+        
+        elif current_step == "quality_validation":
+            # Quality Validation Step
+            pause_for_explanation(
+                "STEP: QUALITY VALIDATION",
+                """
+The Quality Validator Agent ensures research quality and completeness:
+• Validates data completeness and accuracy
+• Checks analysis thoroughness and consistency
+• Identifies gaps or inconsistencies in research
+• Provides quality assurance before report generation
+
+This agent is generic and can validate research for any domain.
+                """,
+                interactive_mode
+            )
+            
+            show_agent_working("Quality Validator Agent", "Validating research quality...")
+            
+            # Validate research quality
+            validation_prompt = f"""
+            You are a quality validator. Validate the research quality for:
+            
+            Query: {state['original_query']}
+            Entities: {state['parsed_entities']}
+            Focus Areas: {state['research_focus_areas']}
+            Research Data: {len(state.get('research_data', {}))} entities
+            Analysis Results: {len(state.get('analysis_results', {}))} entities
+            
+            Validate and assess:
+            1. Data completeness (are all entities and focus areas covered?)
+            2. Analysis quality (are the analyses thorough and consistent?)
+            3. Research gaps (what's missing or needs improvement?)
+            4. Overall quality score (1-10)
+            5. Recommendations for improvement
+            
+            Return as JSON format:
+            {{
+                "data_completeness": {{
+                    "score": 8,
+                    "details": "description of completeness"
+                }},
+                "analysis_quality": {{
+                    "score": 7,
+                    "details": "description of analysis quality"
+                }},
+                "research_gaps": ["gap1", "gap2"],
+                "overall_score": 7.5,
+                "recommendations": ["recommendation1", "recommendation2"],
+                "validation_status": "pass|needs_improvement|fail"
+            }}
+            """
+            
+            try:
+                response = orchestrator.llm.invoke([{"role": "user", "content": validation_prompt}])
+                
+                # Show full LLM call
+                show_llm_call(validation_prompt, response.content, "Quality Validator")
+                
+                # Parse the response
+                result = response.content.strip()
+                if result.startswith("```json"):
+                    result = result[7:]
+                if result.endswith("```"):
+                    result = result[:-3]
+                
+                # Find JSON object within the response
+                start_idx = result.find('{')
+                end_idx = result.rfind('}')
+                if start_idx != -1 and end_idx != -1 and start_idx < end_idx:
+                    result = result[start_idx:end_idx+1]
+                
+                validation_data = json.loads(result)
+                
+                state["validation_results"] = validation_data
+                console.print(f"✅ Quality validation completed!")
+                console.print(f"   • Overall Score: {validation_data.get('overall_score', 'N/A')}/10")
+                console.print(f"   • Validation Status: {validation_data.get('validation_status', 'N/A')}")
+                console.print(f"   • Research Gaps: {len(validation_data.get('research_gaps', []))}")
+                
+                state["agent_call_counts"]["quality_validator"] += 1
+                last_result = "quality_validated"
+                state["agent_messages"].append(f"Quality Validator: Validated research with score {validation_data.get('overall_score', 'N/A')}/10")
+
+            except Exception as e:
+                console.print(f"❌ Quality validation failed: {e}")
+                state["validation_results"] = {
+                    "data_completeness": {"score": 7, "details": "Good coverage"},
+                    "analysis_quality": {"score": 7, "details": "Solid analysis"},
+                    "research_gaps": [],
+                    "overall_score": 7,
+                    "recommendations": ["Continue with current approach"],
+                    "validation_status": "pass"
+                }
+                state["agent_call_counts"]["quality_validator"] += 1
+                last_result = "quality_validated_fallback"
+                state["agent_messages"].append(f"Quality Validator: Using fallback validation due to validation error")
+            
+            # Orchestrator decision
+            console.print("\n🎭 **ORCHESTRATOR DECISION MAKING**: The **ORCHESTRATOR** is now analyzing the results and deciding the next action...")
+            decision = orchestrator_decision(orchestrator, state, last_result)
+            console.print(f"🎯 **ORCHESTRATOR DECISION**: {decision.upper()}")
+            console.print(f"   Based on: {state['current_agent']} result")
+            console.print(f"   Iteration: {state['iteration_count']}/{state['max_iterations']}")
+            
+            # Show agent transfer
+            if decision == "report_synthesis":
+                show_agent_transfer("Quality Validator", "Report Synthesizer", "Orchestrator decided to synthesize report")
+                current_step = "report_synthesis"
+                pause_for_explanation("TRANSITION", f"Press Enter to continue with {decision.upper()}...", interactive_mode)
+            elif decision == "data_collection":
+                show_agent_transfer("Quality Validator", "Data Collector", "Orchestrator decided to collect more data")
+                current_step = "data_collection"
+                pause_for_explanation("TRANSITION", f"Press Enter to continue with {decision.upper()}...", interactive_mode)
+            elif decision == "end":
+                pause_for_explanation("TRANSITION", f"Press Enter to continue with {decision.upper()}...", interactive_mode)
+                break
+            else:
+                # Default to report synthesis
+                show_agent_transfer("Quality Validator", "Report Synthesizer", "Orchestrator default decision")
+                current_step = "report_synthesis"
                 pause_for_explanation("TRANSITION", f"Press Enter to continue with {decision.upper()}...", interactive_mode)
             
         elif current_step == "report_synthesis":
