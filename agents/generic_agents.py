@@ -221,7 +221,7 @@ class GenericResearchOrchestrator:
     
     def data_analyzer_agent(self, state: GenericAgentState) -> GenericAgentState:
         """Agent 4: Data Analyzer - Analyzes research data using LLM"""
-        print("📊 Data Analyzer Agent: Analyzing research data with LLM...")
+        print("Data Analyzer Agent: Analyzing research data with LLM...")
         
         research_data = state["research_data"]["results"]
         analysis_results = {}
@@ -372,7 +372,7 @@ class GenericResearchOrchestrator:
     
     def report_synthesizer_agent(self, state: GenericAgentState) -> GenericAgentState:
         """Agent 6: Report Synthesizer - Creates final report"""
-        print("📝 Report Synthesizer Agent: Creating final report...")
+        print("Report Synthesizer Agent: Creating final report...")
         
         # Generate comprehensive report
         report = self._generate_comprehensive_report(state)
@@ -467,7 +467,7 @@ class GenericResearchOrchestrator:
     
     def _generate_comprehensive_report(self, state: GenericAgentState) -> str:
         """Generate comprehensive final report using LLM"""
-        print("📝 Report Generator: Creating sophisticated LLM-powered report...")
+        print("Report Generator: Creating sophisticated LLM-powered report...")
         
         # Prepare data for LLM analysis
         analysis_data = {}

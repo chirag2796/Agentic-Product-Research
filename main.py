@@ -27,12 +27,12 @@ def pause_for_explanation(title: str, explanation: str, interactive_mode: bool):
 
 def show_agent_working(agent_name: str, action: str):
     """Show agent working status"""
-    console.print(f"\n🤖 {agent_name}: {action}")
+    console.print(f"\n{agent_name}: {action}")
 
 
 def show_llm_call(prompt: str, response: str, agent_name: str):
     """Show full LLM input and output for transparency"""
-    console.print(f"\n📝 [bold]{agent_name} LLM CALL:[/bold]")
+    console.print(f"\n[bold]{agent_name} LLM CALL:[/bold]")
     console.print(f"[bold]INPUT PROMPT:[/bold]")
     console.print(f"[dim]{prompt[:500]}{'...' if len(prompt) > 500 else ''}[/dim]")
     console.print(f"\n[bold]LLM RESPONSE:[/bold]")
@@ -50,12 +50,12 @@ def show_agent_transfer_chain(agent_messages: list):
     
     # Create the chain string showing actual flow
     chain_str = " → ".join(agent_chain)
-    console.print(f"\n🔄 [bold]COMPLETE AGENT TRANSFER CHAIN:[/bold] {chain_str}")
+    console.print(f"\n[bold]COMPLETE AGENT TRANSFER CHAIN:[/bold] {chain_str}")
 
 
 def show_agent_transfer(from_agent: str, to_agent: str, reason: str = ""):
     """Show clear agent transfer with reason"""
-    console.print(f"\n🔄 [bold]CONTROL TRANSFER:[/bold] {from_agent} → {to_agent}")
+    console.print(f"\n[bold]CONTROL TRANSFER:[/bold] {from_agent} → {to_agent}")
     if reason:
         console.print(f"   Reason: {reason}")
 
@@ -63,7 +63,7 @@ def show_agent_transfer(from_agent: str, to_agent: str, reason: str = ""):
 def show_state_info(state: dict, interactive_mode: bool):
     """Show current system state"""
     if interactive_mode:
-        console.print(f"\n📊 Current System State:")
+        console.print(f"\nCurrent System State:")
         console.print(f"  • Entities: {', '.join(state.get('parsed_entities', []))}")
         console.print(f"  • Focus Areas: {', '.join(state.get('research_focus_areas', []))}")
         console.print(f"  • Current Agent: {state.get('current_agent', 'None')}")
@@ -247,7 +247,7 @@ def run_truly_dynamic_research(query: str, interactive_mode: bool = False):
         f"""
 🎪 TRULY DYNAMIC AI AGENT RESEARCH SYSTEM - {'INTERACTIVE' if interactive_mode else 'AUTOMATED'} MODE
 
-🎯 System Capabilities:
+System Capabilities:
 • Handles ANY research query with true dynamic orchestration
 • 6+ autonomous agents with intelligent routing
 • Non-linear workflow with real inter-agent communication
@@ -256,17 +256,17 @@ def run_truly_dynamic_research(query: str, interactive_mode: bool = False):
 • Orchestrator makes intelligent decisions to loop back and enhance
 
 🔧 Framework: LangGraph with StateGraph
-🤖 Agents: Query Parser, Research Planner, Data Collector, Data Analyzer, Quality Validator, Report Synthesizer
-📊 Output: Comprehensive research reports with true agentic orchestration
+Agents: Query Parser, Research Planner, Data Collector, Data Analyzer, Quality Validator, Report Synthesizer
+Output: Comprehensive research reports with true agentic orchestration
 
-🎯 Current Query: {query[:100]}...
+Current Query: {query[:100]}...
         """,
-        title="🤖 Truly Dynamic AI Agent Research System",
+        title="Truly Dynamic AI Agent Research System",
         border_style="green"
     ))
     
     if interactive_mode:
-        console.print("\n🎭 **ORCHESTRATOR INITIATION**: The **ORCHESTRATOR** is now initiating the multi-agent workflow with dynamic decision-making based on agent results.")
+        console.print("\n[bold]ORCHESTRATOR INITIATION[/bold]: The ORCHESTRATOR is now initiating the multi-agent workflow with dynamic decision-making based on agent results.")
         input("\nPress Enter to start the research process...")
     
     # Initialize state
@@ -384,9 +384,9 @@ def run_truly_dynamic_research(query: str, interactive_mode: bool = False):
             show_state_info(state, interactive_mode)
             
             # Orchestrator decision
-            console.print("\n🎭 [bold]ORCHESTRATOR DECISION MAKING:[/bold] Analyzing results and deciding next action...")
+            console.print("\n[bold]ORCHESTRATOR DECISION MAKING[/bold]: Analyzing results and deciding next action...")
             decision = orchestrator_decision(orchestrator, state, last_result)
-            console.print(f"🎯 [bold]ORCHESTRATOR DECISION:[/bold] {decision.upper()}")
+            console.print(f"[bold]ORCHESTRATOR DECISION:[/bold] {decision.upper()}")
             console.print(f"   Based on: {state['current_agent']} result")
             console.print(f"   Iteration: {state['iteration_count']}/{state['max_iterations']}")
             
@@ -503,9 +503,9 @@ def run_truly_dynamic_research(query: str, interactive_mode: bool = False):
             show_state_info(state, interactive_mode)
             
             # Orchestrator decision
-            console.print("\n🎭 [bold]ORCHESTRATOR DECISION MAKING:[/bold] Analyzing results and deciding next action...")
+            console.print("\n[bold]ORCHESTRATOR DECISION MAKING[/bold]: Analyzing results and deciding next action...")
             decision = orchestrator_decision(orchestrator, state, last_result)
-            console.print(f"🎯 [bold]ORCHESTRATOR DECISION:[/bold] {decision.upper()}")
+            console.print(f"[bold]ORCHESTRATOR DECISION:[/bold] {decision.upper()}")
             console.print(f"   Based on: {state['current_agent']} result")
             console.print(f"   Iteration: {state['iteration_count']}/{state['max_iterations']}")
             
@@ -627,9 +627,9 @@ def run_truly_dynamic_research(query: str, interactive_mode: bool = False):
             show_state_info(state, interactive_mode)
             
             # Orchestrator decision
-            console.print("\n🎭 [bold]ORCHESTRATOR DECISION MAKING:[/bold] Analyzing results and deciding next action...")
+            console.print("\n[bold]ORCHESTRATOR DECISION MAKING[/bold]: Analyzing results and deciding next action...")
             decision = orchestrator_decision(orchestrator, state, last_result)
-            console.print(f"🎯 [bold]ORCHESTRATOR DECISION:[/bold] {decision.upper()}")
+            console.print(f"[bold]ORCHESTRATOR DECISION:[/bold] {decision.upper()}")
             console.print(f"   Based on: {state['current_agent']} result")
             console.print(f"   Iteration: {state['iteration_count']}/{state['max_iterations']}")
             
@@ -733,9 +733,9 @@ def run_truly_dynamic_research(query: str, interactive_mode: bool = False):
             show_state_info(state, interactive_mode)
             
             # Orchestrator decision
-            console.print("\n🎭 [bold]ORCHESTRATOR DECISION MAKING:[/bold] Analyzing results and deciding next action...")
+            console.print("\n[bold]ORCHESTRATOR DECISION MAKING[/bold]: Analyzing results and deciding next action...")
             decision = orchestrator_decision(orchestrator, state, last_result)
-            console.print(f"🎯 [bold]ORCHESTRATOR DECISION:[/bold] {decision.upper()}")
+            console.print(f"[bold]ORCHESTRATOR DECISION:[/bold] {decision.upper()}")
             console.print(f"   Based on: {state['current_agent']} result")
             console.print(f"   Iteration: {state['iteration_count']}/{state['max_iterations']}")
             
@@ -859,9 +859,9 @@ def run_truly_dynamic_research(query: str, interactive_mode: bool = False):
                 state["agent_messages"].append(f"Quality Validator: Using fallback validation due to validation error")
             
             # Orchestrator decision
-            console.print("\n🎭 [bold]ORCHESTRATOR DECISION MAKING:[/bold] Analyzing results and deciding next action...")
+            console.print("\n[bold]ORCHESTRATOR DECISION MAKING[/bold]: Analyzing results and deciding next action...")
             decision = orchestrator_decision(orchestrator, state, last_result)
-            console.print(f"🎯 [bold]ORCHESTRATOR DECISION:[/bold] {decision.upper()}")
+            console.print(f"[bold]ORCHESTRATOR DECISION:[/bold] {decision.upper()}")
             console.print(f"   Based on: {state['current_agent']} result")
             console.print(f"   Iteration: {state['iteration_count']}/{state['max_iterations']}")
             
@@ -986,9 +986,9 @@ def run_truly_dynamic_research(query: str, interactive_mode: bool = False):
             show_state_info(state, interactive_mode)
             
             # Orchestrator decision
-            console.print("\n🎭 [bold]ORCHESTRATOR DECISION MAKING:[/bold] Analyzing results and deciding next action...")
+            console.print("\n[bold]ORCHESTRATOR DECISION MAKING[/bold]: Analyzing results and deciding next action...")
             decision = orchestrator_decision(orchestrator, state, last_result)
-            console.print(f"🎯 [bold]ORCHESTRATOR DECISION:[/bold] {decision.upper()}")
+            console.print(f"[bold]ORCHESTRATOR DECISION:[/bold] {decision.upper()}")
             console.print(f"   Based on: {state['current_agent']} result")
             console.print(f"   Iteration: {state['iteration_count']}/{state['max_iterations']}")
             
@@ -1016,14 +1016,14 @@ def run_truly_dynamic_research(query: str, interactive_mode: bool = False):
     save_results(state, results_dir)
     
     # Show final summary
-    console.print(f"\n🎉 Research completed!")
-    console.print(f"📊 Total agent interactions: {len(state.get('agent_messages', []))}")
-    console.print(f"📊 Research entities: {len(state.get('parsed_entities', []))}")
-    console.print(f"📊 Analysis results: {len(state.get('analysis_results', {}))}")
-    console.print(f"📊 Report length: {len(state.get('final_report', ''))} characters")
+    console.print(f"\nResearch completed!")
+    console.print(f"Total agent interactions: {len(state.get('agent_messages', []))}")
+    console.print(f"Research entities: {len(state.get('parsed_entities', []))}")
+    console.print(f"Analysis results: {len(state.get('analysis_results', {}))}")
+    console.print(f"Report length: {len(state.get('final_report', ''))} characters")
     
     # Show agent communication log
-    console.print(f"\n🤖 Agent Communication Log:")
+    console.print(f"\nAgent Communication Log:")
     for i, message in enumerate(state.get('agent_messages', []), 1):
         console.print(f"  {i}. {message}")
     
