@@ -7,9 +7,9 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
-# API Keys
-SERPER_API_KEY = "f7c85cc629b2d2a20bd478075a402a3e158677b4"
-OPENROUTER_API_KEY = "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"
+# API Keys (loaded from environment variables)
+SERPER_API_KEY = os.getenv("SERPER_API_KEY")
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 
 # OpenRouter Configuration
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
