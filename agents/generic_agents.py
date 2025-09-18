@@ -162,26 +162,94 @@ class GenericResearchOrchestrator:
         return state
     
     def research_planner_agent(self, state: GenericAgentState) -> GenericAgentState:
-        """Agent 2: Research Planner - Plans research strategy for any domain"""
-        print("📋 Research Planner Agent: Creating research strategy...")
+        """Agent 2: Research Planner - Plans research strategy using LLM for any domain"""
+        print("Research Planner Agent: Creating AI-powered research strategy...")
         
-        # Create research plan
-        plan = {
-            "entities": state["parsed_entities"],
-            "focus_areas": state["research_focus_areas"],
-            "strategy": "Comprehensive web research with validation",
-            "search_queries": []
-        }
+        # Prepare data for LLM planning
+        entities = state["parsed_entities"]
+        focus_areas = state["research_focus_areas"]
+        original_query = state["original_query"]
         
-        # Generate search queries for each entity
-        for entity in state["parsed_entities"]:
-            for area in state["research_focus_areas"]:
-                query = f"{entity} {area} 2024"
-                plan["search_queries"].append(query)
+        # Use LLM to create intelligent research strategy
+        planning_prompt = f"""
+        You are a senior research strategist. Create a comprehensive research plan for the following query:
+        
+        Original Query: {original_query}
+        
+        Entities to Research: {', '.join(entities)}
+        Focus Areas: {', '.join(focus_areas)}
+        
+        Create a strategic research plan that includes:
+        1. Research strategy approach
+        2. Specific search queries for each entity-focus area combination
+        3. Priority order for research
+        4. Expected outcomes
+        
+        Format your response as JSON:
+        {{
+            "strategy": "Brief description of research approach",
+            "search_queries": [
+                "specific search query 1",
+                "specific search query 2",
+                ...
+            ],
+            "priority_order": ["entity1", "entity2", ...],
+            "expected_outcomes": "What we expect to learn"
+        }}
+        
+        Make the search queries specific, current (include 2024), and optimized for web search.
+        """
+        
+        try:
+            response = self.llm.invoke([HumanMessage(content=planning_prompt)])
+            llm_response = response.content
+            
+            # Parse LLM response
+            import json
+            import re
+            
+            # Extract JSON from LLM response
+            json_match = re.search(r'\{.*\}', llm_response, re.DOTALL)
+            if json_match:
+                plan_data = json.loads(json_match.group())
+                
+                plan = {
+                    "entities": entities,
+                    "focus_areas": focus_areas,
+                    "strategy": plan_data.get("strategy", "Comprehensive web research with validation"),
+                    "search_queries": plan_data.get("search_queries", []),
+                    "priority_order": plan_data.get("priority_order", entities),
+                    "expected_outcomes": plan_data.get("expected_outcomes", "Comprehensive analysis of all entities"),
+                    "llm_planning": "AI-powered strategy planning completed"
+                }
+            else:
+                # Fallback if JSON parsing fails
+                plan = {
+                    "entities": entities,
+                    "focus_areas": focus_areas,
+                    "strategy": "Comprehensive web research with validation",
+                    "search_queries": [f"{entity} {area} 2024" for entity in entities for area in focus_areas],
+                    "priority_order": entities,
+                    "expected_outcomes": "Comprehensive analysis of all entities",
+                    "llm_planning": "AI planning attempted, fallback to rule-based"
+                }
+                
+        except Exception as e:
+            print(f"LLM research planning failed: {e}")
+            # Fallback to rule-based planning
+            plan = {
+                "entities": entities,
+                "focus_areas": focus_areas,
+                "strategy": "Comprehensive web research with validation",
+                "search_queries": [f"{entity} {area} 2024" for entity in entities for area in focus_areas],
+                "priority_order": entities,
+                "expected_outcomes": "Comprehensive analysis of all entities",
+                "llm_planning": "Rule-based fallback (LLM failed)"
+            }
         
         state["research_data"] = {"plan": plan, "results": {}}
         state["current_agent"] = "research_planner"
-        state["agent_messages"].append(f"Research Planner: Created research plan with {len(plan['search_queries'])} search queries")
+        state["agent_messages"].append(f"Research Planner: Created AI-powered research plan with {len(plan['search_queries'])} search queries")
         
         return state
     
