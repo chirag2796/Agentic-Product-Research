@@ -20,6 +20,8 @@ The system uses a centralized orchestrator that intelligently routes tasks betwe
 - **Quality Gates**: Built-in validation ensures comprehensive research before final reporting
 - **Adaptive Behavior**: The system adjusts its approach based on research quality and completeness
 
+![System Architecture](architecture.png)
+
 ## 🛠️ Installation
 
 1. **Clone the repository**
