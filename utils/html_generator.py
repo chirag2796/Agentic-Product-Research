@@ -376,23 +376,108 @@ class HTMLReportGenerator:
         return html
     
     def _generate_executive_summary(self, final_report: str) -> str:
-        """Generate executive summary section"""
-        # Extract key parts from the report
-        lines = final_report.split('\n')
-        summary_lines = []
-        
-        for line in lines[:10]:  # Take first 10 lines
-            if line.strip() and not line.startswith('#'):
-                summary_lines.append(line.strip())
-        
-        summary_text = ' '.join(summary_lines)
+        """Generate executive summary section with markdown table support"""
+        # Convert markdown to HTML
+        html_content = self._convert_markdown_to_html(final_report)
         
         return f"""
         <div class="section">
-            <h2>Executive Summary</h2>
-            <p>{summary_text}</p>
+            <h2>Comprehensive Research Report</h2>
+            <div class="report-content">
+                {html_content}
+            </div>
         </div>
         """
+    
+    def _convert_markdown_to_html(self, markdown_text: str) -> str:
+        """Convert markdown text to HTML, especially handling tables"""
+        lines = markdown_text.split('\n')
+        html_lines = []
+        in_table = False
+        table_lines = []
+        
+        for line in lines:
+            # Handle headers
+            if line.startswith('#'):
+                level = len(line) - len(line.lstrip('#'))
+                text = line.lstrip('# ').strip()
+                html_lines.append(f'<h{level}>{text}</h{level}>')
+            
+            # Handle tables
+            elif '|' in line and line.strip():
+                if not in_table:
+                    in_table = True
+                    table_lines = []
+                table_lines.append(line)
+            
+            # End of table
+            elif in_table and not line.strip():
+                if table_lines:
+                    html_lines.append(self._convert_table_to_html(table_lines))
+                    table_lines = []
+                in_table = False
+                html_lines.append('')
+            
+            # Regular content
+            else:
+                if in_table and table_lines:
+                    html_lines.append(self._convert_table_to_html(table_lines))
+                    table_lines = []
+                    in_table = False
+                
+                if line.strip():
+                    # Convert bold text
+                    line = line.replace('**', '<strong>').replace('**', '</strong>')
+                    # Convert italic text
+                    line = line.replace('*', '<em>').replace('*', '</em>')
+                    html_lines.append(f'<p>{line}</p>')
+                else:
+                    html_lines.append('')
+        
+        # Handle any remaining table
+        if in_table and table_lines:
+            html_lines.append(self._convert_table_to_html(table_lines))
+        
+        return '\n'.join(html_lines)
+    
+    def _convert_table_to_html(self, table_lines: list) -> str:
+        """Convert markdown table to HTML table"""
+        if not table_lines:
+            return ''
+        
+        # Remove separator line (second line usually)
+        if len(table_lines) > 1 and '---' in table_lines[1]:
+            table_lines.pop(1)
+        
+        html = '<table class="comparison-table">\n'
+        
+        for i, line in enumerate(table_lines):
+            if not line.strip():
+                continue
+                
+            # Split by | and clean up
+            cells = [cell.strip() for cell in line.split('|')]
+            # Remove empty first/last cells if they exist
+            if cells and not cells[0]:
+                cells = cells[1:]
+            if cells and not cells[-1]:
+                cells = cells[:-1]
+            
+            if i == 0:
+                # Header row
+                html += '    <thead>\n        <tr>\n'
+                for cell in cells:
+                    html += f'            <th>{cell}</th>\n'
+                html += '        </tr>\n    </thead>\n    <tbody>\n'
+            else:
+                # Data row
+                html += '        <tr>\n'
+                for cell in cells:
+                    html += f'            <td>{cell}</td>\n'
+                html += '        </tr>\n'
+        
+        html += '    </tbody>\n</table>'
+        return html
     
     def _generate_methodology_section(self) -> str:
         """Generate research methodology section"""

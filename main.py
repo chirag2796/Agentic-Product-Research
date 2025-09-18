@@ -90,6 +90,11 @@ def save_results(state: dict, results_dir: Path):
     with open(txt_file, 'w', encoding='utf-8') as f:
         f.write(state.get("final_report", "No report generated"))
     
+    # Save markdown report
+    md_file = run_dir / "research_report.md"
+    with open(md_file, 'w', encoding='utf-8') as f:
+        f.write(state.get("final_report", "No report generated"))
+    
     # Generate HTML report
     html_generator = HTMLReportGenerator()
     html_content = html_generator.generate_html_report(state)
@@ -100,6 +105,7 @@ def save_results(state: dict, results_dir: Path):
     console.print(f"📁 Results saved to: {run_dir}")
     console.print(f"  • JSON: {json_file.name}")
     console.print(f"  • TXT: {txt_file.name}")
+    console.print(f"  • MD: {md_file.name}")
     console.print(f"  • HTML: {html_file.name}")
 
 
@@ -992,8 +998,13 @@ This agent demonstrates the power of LLM-driven report generation.
             - Side-by-side feature comparisons
             - Detailed recommendations for different business sizes
             
+            REQUIRED: Include a comprehensive side-by-side comparison table in markdown format.
+            The table should compare all entities across all focus areas ({focus_areas_list}).
+            Use proper markdown table formatting with clear headers and organized data.
+            
             IMPORTANT: This report must be comprehensive and detailed. NO CHARACTER LIMIT.
             Make this report detailed, professional, and valuable for decision-making.
+            Format the entire report in clean, well-structured markdown with proper headers, lists, and tables.
             """
             
             try:
