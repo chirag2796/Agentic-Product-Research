@@ -32,10 +32,10 @@ def show_agent_working(agent_name: str, action: str):
 
 def show_llm_call(prompt: str, response: str, agent_name: str):
     """Show full LLM input and output for transparency"""
-    console.print(f"\n📝 **{agent_name} LLM CALL:**")
-    console.print(f"**INPUT PROMPT:**")
+    console.print(f"\n📝 [bold]{agent_name} LLM CALL:[/bold]")
+    console.print(f"[bold]INPUT PROMPT:[/bold]")
     console.print(f"[dim]{prompt[:500]}{'...' if len(prompt) > 500 else ''}[/dim]")
-    console.print(f"\n**LLM RESPONSE:**")
+    console.print(f"\n[bold]LLM RESPONSE:[/bold]")
     console.print(f"[green]{response[:500]}{'...' if len(response) > 500 else ''}[/green]")
 
 
@@ -50,12 +50,12 @@ def show_agent_transfer_chain(agent_messages: list):
     
     # Create the chain string showing actual flow
     chain_str = " → ".join(agent_chain)
-    console.print(f"\n🔄 **COMPLETE AGENT TRANSFER CHAIN:** {chain_str}")
+    console.print(f"\n🔄 [bold]COMPLETE AGENT TRANSFER CHAIN:[/bold] {chain_str}")
 
 
 def show_agent_transfer(from_agent: str, to_agent: str, reason: str = ""):
     """Show clear agent transfer with reason"""
-    console.print(f"\n🔄 **CONTROL TRANSFER:** {from_agent} → {to_agent}")
+    console.print(f"\n🔄 [bold]CONTROL TRANSFER:[/bold] {from_agent} → {to_agent}")
     if reason:
         console.print(f"   Reason: {reason}")
 
@@ -204,9 +204,7 @@ def orchestrator_decision(orchestrator, state: dict, last_agent_result: str) -> 
         # Extract only the first word/line (the actual decision)
         decision_clean = decision.split('\n')[0].split()[0] if decision else decision
         
-        # Debug: Print the exact decision
-        console.print(f"🔍 **DEBUG**: Original = '{decision[:50]}...' (length: {len(decision)})")
-        console.print(f"🔍 **DEBUG**: Cleaned = '{decision_clean}' (length: {len(decision_clean)})")
+        # Clean the decision
         
         # Don't add orchestrator decisions to agent messages - they're internal
         
@@ -246,7 +244,7 @@ def _assess_data_completeness(state: dict) -> str:
 
 def run_truly_dynamic_research(query: str, interactive_mode: bool = False):
     """Run truly dynamic research with real orchestration"""
-    console.print("🚀 Starting Truly Dynamic AI Agent Research System...")
+    console.print("🚀 Starting AI Research System...")
     
     # Initialize the generic orchestrator
     console.print("🔧 Initializing Generic Research Orchestrator...")
@@ -306,15 +304,8 @@ def run_truly_dynamic_research(query: str, interactive_mode: bool = False):
         if current_step == "query_parsing":
             # Query Parsing Step
             pause_for_explanation(
-                "STEP: QUERY PARSING",
-                """
-The Query Parser Agent analyzes ANY research query and extracts:
-• Main entities/subjects to research (products, companies, technologies, concepts)
-• Research focus areas (pricing, features, reviews, comparisons, etc.)
-• Research context and expected output format
-
-This agent is generic and can handle any type of research query.
-                """,
+                "QUERY PARSING",
+                "Analyzing research query and extracting entities, focus areas, and context.",
                 interactive_mode
             )
             
@@ -401,9 +392,9 @@ This agent is generic and can handle any type of research query.
             show_state_info(state, interactive_mode)
             
             # Orchestrator decision
-            console.print("\n🎭 **ORCHESTRATOR DECISION MAKING**: The **ORCHESTRATOR** is now analyzing the results and deciding the next action...")
+            console.print("\n🎭 [bold]ORCHESTRATOR DECISION MAKING:[/bold] Analyzing results and deciding next action...")
             decision = orchestrator_decision(orchestrator, state, last_result)
-            console.print(f"🎯 **ORCHESTRATOR DECISION**: {decision.upper()}")
+            console.print(f"🎯 [bold]ORCHESTRATOR DECISION:[/bold] {decision.upper()}")
             console.print(f"   Based on: {state['current_agent']} result")
             console.print(f"   Iteration: {state['iteration_count']}/{state['max_iterations']}")
             
@@ -435,15 +426,8 @@ This agent is generic and can handle any type of research query.
         elif current_step == "research_planning":
             # Research Planning Step
             pause_for_explanation(
-                "STEP: RESEARCH PLANNING",
-                """
-The Research Planner Agent creates a comprehensive research strategy for ANY topic:
-• Generates specific search queries for each entity and focus area
-• Identifies data sources and research methodology
-• Sets quality criteria and expected deliverables
-
-This agent demonstrates true reasoning and planning capabilities.
-                """,
+                "RESEARCH PLANNING",
+                "Creating research strategy and search queries for comprehensive data collection.",
                 interactive_mode
             )
             
@@ -527,9 +511,9 @@ This agent demonstrates true reasoning and planning capabilities.
             show_state_info(state, interactive_mode)
             
             # Orchestrator decision
-            console.print("\n🎭 **ORCHESTRATOR DECISION MAKING**: The **ORCHESTRATOR** is now analyzing the results and deciding the next action...")
+            console.print("\n🎭 [bold]ORCHESTRATOR DECISION MAKING:[/bold] Analyzing results and deciding next action...")
             decision = orchestrator_decision(orchestrator, state, last_result)
-            console.print(f"🎯 **ORCHESTRATOR DECISION**: {decision.upper()}")
+            console.print(f"🎯 [bold]ORCHESTRATOR DECISION:[/bold] {decision.upper()}")
             console.print(f"   Based on: {state['current_agent']} result")
             console.print(f"   Iteration: {state['iteration_count']}/{state['max_iterations']}")
             
@@ -557,15 +541,8 @@ This agent demonstrates true reasoning and planning capabilities.
         elif current_step == "data_collection":
             # Data Collection Step
             pause_for_explanation(
-                "STEP: DATA COLLECTION",
-                """
-The Data Collector Agent performs web research for ANY topic:
-• Executes search queries for each entity and focus area
-• Gathers comprehensive data from multiple sources
-• Demonstrates collaborative behavior by working with the research plan
-
-This agent shows how agents can delegate and coordinate tasks.
-                """,
+                "DATA COLLECTION",
+                "Performing web research and gathering comprehensive data from multiple sources.",
                 interactive_mode
             )
             
@@ -658,9 +635,9 @@ This agent shows how agents can delegate and coordinate tasks.
             show_state_info(state, interactive_mode)
             
             # Orchestrator decision
-            console.print("\n🎭 **ORCHESTRATOR DECISION MAKING**: The **ORCHESTRATOR** is now analyzing the results and deciding the next action...")
+            console.print("\n🎭 [bold]ORCHESTRATOR DECISION MAKING:[/bold] Analyzing results and deciding next action...")
             decision = orchestrator_decision(orchestrator, state, last_result)
-            console.print(f"🎯 **ORCHESTRATOR DECISION**: {decision.upper()}")
+            console.print(f"🎯 [bold]ORCHESTRATOR DECISION:[/bold] {decision.upper()}")
             console.print(f"   Based on: {state['current_agent']} result")
             console.print(f"   Iteration: {state['iteration_count']}/{state['max_iterations']}")
             
@@ -688,15 +665,8 @@ This agent shows how agents can delegate and coordinate tasks.
         elif current_step == "data_analysis":
             # Data Analysis Step
             pause_for_explanation(
-                "STEP: DATA ANALYSIS",
-                """
-The Data Analyzer Agent processes research data for ANY topic:
-• Analyzes collected data using LLM reasoning
-• Extracts insights and patterns
-• Demonstrates non-linear thinking by adapting analysis to different entity types
-
-This agent shows true reasoning capabilities across different domains.
-                """,
+                "DATA ANALYSIS",
+                "Analyzing collected data and extracting insights using advanced reasoning.",
                 interactive_mode
             )
             
@@ -771,9 +741,9 @@ This agent shows true reasoning capabilities across different domains.
             show_state_info(state, interactive_mode)
             
             # Orchestrator decision
-            console.print("\n🎭 **ORCHESTRATOR DECISION MAKING**: The **ORCHESTRATOR** is now analyzing the results and deciding the next action...")
+            console.print("\n🎭 [bold]ORCHESTRATOR DECISION MAKING:[/bold] Analyzing results and deciding next action...")
             decision = orchestrator_decision(orchestrator, state, last_result)
-            console.print(f"🎯 **ORCHESTRATOR DECISION**: {decision.upper()}")
+            console.print(f"🎯 [bold]ORCHESTRATOR DECISION:[/bold] {decision.upper()}")
             console.print(f"   Based on: {state['current_agent']} result")
             console.print(f"   Iteration: {state['iteration_count']}/{state['max_iterations']}")
             
@@ -805,16 +775,8 @@ This agent shows true reasoning capabilities across different domains.
         elif current_step == "quality_validation":
             # Quality Validation Step
             pause_for_explanation(
-                "STEP: QUALITY VALIDATION",
-                """
-The Quality Validator Agent ensures research quality and completeness:
-• Validates data completeness and accuracy
-• Checks analysis thoroughness and consistency
-• Identifies gaps or inconsistencies in research
-• Provides quality assurance before report generation
-
-This agent is generic and can validate research for any domain.
-                """,
+                "QUALITY VALIDATION",
+                "Validating research quality and ensuring completeness before report generation.",
                 interactive_mode
             )
             
@@ -900,9 +862,9 @@ This agent is generic and can validate research for any domain.
                 state["agent_messages"].append(f"Quality Validator: Using fallback validation due to validation error")
             
             # Orchestrator decision
-            console.print("\n🎭 **ORCHESTRATOR DECISION MAKING**: The **ORCHESTRATOR** is now analyzing the results and deciding the next action...")
+            console.print("\n🎭 [bold]ORCHESTRATOR DECISION MAKING:[/bold] Analyzing results and deciding next action...")
             decision = orchestrator_decision(orchestrator, state, last_result)
-            console.print(f"🎯 **ORCHESTRATOR DECISION**: {decision.upper()}")
+            console.print(f"🎯 [bold]ORCHESTRATOR DECISION:[/bold] {decision.upper()}")
             console.print(f"   Based on: {state['current_agent']} result")
             console.print(f"   Iteration: {state['iteration_count']}/{state['max_iterations']}")
             
@@ -927,15 +889,8 @@ This agent is generic and can validate research for any domain.
         elif current_step == "report_synthesis":
             # Report Synthesis Step
             pause_for_explanation(
-                "STEP: REPORT SYNTHESIS",
-                """
-The Report Synthesizer Agent creates comprehensive reports for ANY research:
-• Synthesizes all analysis findings
-• Creates professional, actionable reports
-• Adapts output format based on research context
-
-This agent demonstrates the power of LLM-driven report generation.
-                """,
+                "REPORT SYNTHESIS",
+                "Creating comprehensive report with analysis findings and recommendations.",
                 interactive_mode
             )
             
@@ -1034,9 +989,9 @@ This agent demonstrates the power of LLM-driven report generation.
             show_state_info(state, interactive_mode)
             
             # Orchestrator decision
-            console.print("\n🎭 **ORCHESTRATOR DECISION MAKING**: The **ORCHESTRATOR** is now analyzing the results and deciding the next action...")
+            console.print("\n🎭 [bold]ORCHESTRATOR DECISION MAKING:[/bold] Analyzing results and deciding next action...")
             decision = orchestrator_decision(orchestrator, state, last_result)
-            console.print(f"🎯 **ORCHESTRATOR DECISION**: {decision.upper()}")
+            console.print(f"🎯 [bold]ORCHESTRATOR DECISION:[/bold] {decision.upper()}")
             console.print(f"   Based on: {state['current_agent']} result")
             console.print(f"   Iteration: {state['iteration_count']}/{state['max_iterations']}")
             
@@ -1064,7 +1019,7 @@ This agent demonstrates the power of LLM-driven report generation.
     save_results(state, results_dir)
     
     # Show final summary
-    console.print(f"\n🎉 TRULY DYNAMIC AI AGENT RESEARCH SYSTEM COMPLETED!")
+    console.print(f"\n🎉 Research completed!")
     console.print(f"📊 Total agent interactions: {len(state.get('agent_messages', []))}")
     console.print(f"📊 Research entities: {len(state.get('parsed_entities', []))}")
     console.print(f"📊 Analysis results: {len(state.get('analysis_results', {}))}")
@@ -1081,7 +1036,7 @@ This agent demonstrates the power of LLM-driven report generation.
 
 def main():
     """Main function"""
-    parser = argparse.ArgumentParser(description="Truly Dynamic AI Agent Research System")
+    parser = argparse.ArgumentParser(description="AI Research System")
     parser.add_argument("--interactive", action="store_true", help="Run in interactive mode")
     parser.add_argument("--query", type=str, default=ASSIGNMENT_QUERY, help="Research query")
     
