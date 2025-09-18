@@ -169,26 +169,18 @@ def orchestrator_decision(orchestrator, state: dict, last_agent_result: str) -> 
     9. "cross_validation" - If findings need cross-validation
     10. "end" - If research is complete and satisfactory
     
-    Decision Criteria (SHOW NON-SEQUENTIAL ORCHESTRATION WITH CONTROLLED LOOPS):
-    - If query_parsing completed AND research_planner called < 2 times → research_planning (create research strategy)
-    - If research_planning completed AND data_collector called < 4 times → data_collection (need all target entities)
+    Decision Criteria (ENSURE COMPLETE RESEARCH):
+    - If query_parsing completed AND research_planner called < 2 times → research_planning
+    - If research_planning completed AND data_collector called < 4 times → data_collection
     - If data_collection completed AND data_analyzer called < 4 times → data_analysis
-    - If data_analysis completed AND quality_validator called < 2 times → quality_validation (validate research quality)
+    - If data_analysis completed AND research_data_quality < target_entities_count → data_collection (MUST collect all entities)
+    - If data_analysis completed AND research_data_quality >= target_entities_count AND quality_validator called < 2 times → quality_validation
     - If quality_validation completed AND report_synthesizer called < 3 times → report_synthesis
-    - If report exists but doesn't cover all target entities AND data_collector called < 4 times → data_collection (get missing entities)
     - If report exists and covers all target entities AND iteration count >= 8 → end
     - If iteration count > 15 → end (prevent infinite loops)
-    - If all target entities are researched, analyzed, validated, and reported → end
-    
-    IMPORTANT: Show TRUE DYNAMIC ORCHESTRATION by:
-    1. Collect data for all target entities - 3-4 data collection cycles
-    2. Analyze data for all target entities - 3-4 data analysis cycles  
-    3. Generate comprehensive report covering all target entities - 2-3 report synthesis cycles
-    4. Show 3-4 back-and-forth cycles to demonstrate non-sequential behavior
-    5. Aim for 10-12 total iterations with meaningful loops
-    6. Focus on getting complete data for all target entities
-    7. Ensure report covers all target entities with detailed comparison
-    8. NO CHARACTER LIMITS on reports - make them comprehensive
+
+    CRITICAL RULE: NEVER go to report_synthesis unless research_data_quality >= target_entities_count
+    This ensures all target entities are researched before reporting.
     
     Respond with ONLY the action name (e.g., "data_collection", "enhance_analysis", "additional_research", etc.)
     """
@@ -792,12 +784,17 @@ def run_truly_dynamic_research(query: str, interactive_mode: bool = False):
             Research Data: {len(state.get('research_data', {}))} entities
             Analysis Results: {len(state.get('analysis_results', {}))} entities
             
-            Validate and assess:
+            Validate and assess with GENEROUS scoring:
             1. Data completeness (are all entities and focus areas covered?)
             2. Analysis quality (are the analyses thorough and consistent?)
             3. Research gaps (what's missing or needs improvement?)
-            4. Overall quality score (1-10)
+            4. Overall quality score (1-10) - BE GENEROUS: 6+ for partial data, 8+ for complete data
             5. Recommendations for improvement
+            
+            SCORING GUIDELINES:
+            - 6-7: Good progress with partial data
+            - 8-9: Excellent with complete data
+            - 10: Outstanding comprehensive research
             
             Return as JSON format:
             {{
