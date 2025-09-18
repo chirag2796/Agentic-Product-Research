@@ -1077,9 +1077,6 @@ This agent demonstrates the power of LLM-driven report generation.
     
     # Show complete agent transfer chain
     show_agent_transfer_chain(state.get('agent_messages', []))
-    
-    console.print(f"\n📁 Check the 'results' folder for generated files")
-    console.print("🎪 Perfect for demonstrating truly dynamic agentic AI capabilities!")
 
 
 def main():
