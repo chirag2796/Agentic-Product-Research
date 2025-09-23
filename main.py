@@ -234,8 +234,8 @@ def _assess_data_completeness(state: dict) -> str:
         return "Complete"
 
 
-def run_truly_dynamic_research(query: str, interactive_mode: bool = False):
-    """Run truly dynamic research with real orchestration"""
+def run_research(query: str, interactive_mode: bool = False):
+    """Run dynamic research with orchestration"""
     console.print("🚀 Starting AI Research System...")
     
     # Initialize the generic orchestrator
@@ -245,7 +245,7 @@ def run_truly_dynamic_research(query: str, interactive_mode: bool = False):
     # Show system capabilities
     console.print(Panel(
         f"""
-🎪 TRULY DYNAMIC AI AGENT RESEARCH SYSTEM - {'INTERACTIVE' if interactive_mode else 'AUTOMATED'} MODE
+🎪 DYNAMIC AI AGENT RESEARCH SYSTEM - {'INTERACTIVE' if interactive_mode else 'AUTOMATED'} MODE
 
 System Capabilities:
 • Handles ANY research query with true dynamic orchestration
@@ -1040,7 +1040,7 @@ def main():
     args = parser.parse_args()
     
     # Run the research
-    run_truly_dynamic_research(args.query, args.interactive)
+    run_research(args.query, args.interactive)
 
 
 if __name__ == "__main__":
