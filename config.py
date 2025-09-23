@@ -13,7 +13,8 @@ OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 
 # OpenRouter Configuration
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
-OPENROUTER_MODEL = "anthropic/claude-3.5-sonnet"
+# OPENROUTER_MODEL = "anthropic/claude-3.5-sonnet"
+OPENROUTER_MODEL = "anthropic/claude-4-sonnet"
 # OPENROUTER_MODEL = "google/gemini-2.5-pro"
 
 # Serper Configuration

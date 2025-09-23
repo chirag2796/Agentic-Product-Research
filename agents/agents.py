@@ -800,37 +800,44 @@ def orchestrator_decision(orchestrator, state: dict, last_agent_result: str) -> 
     
     Last Agent Result: {last_agent_result}
     
-    INITIAL RESEARCH FLOW (FOLLOW SEQUENCE):
-    1. After query_parser → ALWAYS choose "research_planning" (create detailed search strategy)
-    2. After research_planner → choose "data_collection" (execute search queries)
-    3. After data_collector → if research_data_quality < target_entities_count → choose "data_collection" (collect ALL entities first)
-    4. After data_collector → if research_data_quality >= target_entities_count → choose "data_analysis" (analyze collected data)
-    5. After data_analyzer → choose "quality_validation" (validate research quality)
+    RESEARCH ORCHESTRATION GUIDANCE:
     
-    CRITICAL QUALITY-DRIVEN RULES (MUST FOLLOW):
-    1. If last_agent_result contains "quality_validated_good" → ALWAYS choose "report_synthesis"
-    2. If last_agent_result contains "quality_validated_needs_improvement":
-       - If quality_validator called < 2 times → choose "data_collection" or "data_analysis" for improvement
-       - If quality_validator called >= 2 times → choose "report_synthesis" (prevent infinite loops)
-    3. If last_agent_result contains "quality_validated_poor":
-       - If quality_validator called < 2 times → choose "data_collection" for more data
-       - If quality_validator called >= 2 times → choose "report_synthesis" (prevent infinite loops)
+    When the system has just parsed a query, the research_planning agent creates a strategic foundation 
+    by developing detailed search queries and methodology. This transforms raw query understanding into 
+    actionable research steps, establishing the roadmap for comprehensive data collection.
     
-    INTELLIGENT DECISION MAKING:
-    - Use your intelligence to determine the best improvement strategy
-    - Consider what type of improvement is needed (more data vs better analysis)
-    - Balance thoroughness with efficiency
-    - Make contextual decisions based on the research progress
-    - Ensure comprehensive coverage before final report
+    The data_collection agent executes systematic information gathering based on the research plan. 
+    It works iteratively to ensure all target entities receive adequate coverage. When research_data_quality 
+    shows fewer entities than target_entities_count, more collection is needed to achieve comprehensive coverage.
     
-    Available Actions:
-    1. "research_planning" - If research plan needs improvement
-    2. "data_collection" - If more data is needed or quality is poor
-    3. "data_analysis" - If data needs analysis or deeper insights
-    4. "quality_validation" - If analysis needs validation
-    5. "report_synthesis" - If ready for final report
-    6. "additional_research" - If specific entities need more research
-    7. "end" - If research is complete and satisfactory
+    Once data collection reaches target completeness, the data_analysis agent processes and synthesizes 
+    the gathered information. This agent transforms raw research data into structured insights, creating 
+    the analytical foundation necessary for quality assessment.
+    
+    The quality_validation agent serves as the research quality gatekeeper. When validation results indicate 
+    "quality_validated_good", the research meets standards for final reporting. However, if validation shows 
+    "quality_validated_needs_improvement" or "quality_validated_poor", the system should intelligently 
+    choose improvement strategies - additional data collection for breadth, enhanced analysis for depth, 
+    or targeted research for specific gaps.
+    
+    The report_synthesis agent creates the final deliverable when research quality is sufficient or when 
+    multiple improvement cycles have been completed (typically after 2 quality validations to prevent 
+    endless iteration).
+    
+    CONTEXTUAL DECISION FACTORS:
+    - Research completeness: Does research_data_quality match target_entities_count?
+    - Analysis depth: Are analysis_quality results comprehensive for the entities collected?
+    - Quality feedback: What specific improvements does quality validation suggest?
+    - Iteration efficiency: Have we reached reasonable iteration limits for practical completion?
+    
+    Available Actions and Their Purpose:
+    • "research_planning" - Develops strategic approach and detailed search methodology
+    • "data_collection" - Gathers comprehensive information across all target entities  
+    • "data_analysis" - Processes data into structured insights and comparative analysis
+    • "quality_validation" - Assesses research comprehensiveness and identifies improvement areas
+    • "report_synthesis" - Creates final deliverable when quality standards are met
+    • "additional_research" - Targeted information gathering for specific improvement needs
+    • "end" - Completes the research process when objectives are fully satisfied
     
     SAFETY RULES:
     - If iteration count >= 12 → choose "report_synthesis"
