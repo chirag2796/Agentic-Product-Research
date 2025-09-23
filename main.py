@@ -113,114 +113,7 @@ def save_results(state: dict, results_dir: Path):
     console.print(f"  • HTML: {html_file.name}")
 
 
-def orchestrator_decision(orchestrator, state: dict, last_agent_result: str) -> str:
-    """Make dynamic orchestrator decisions based on agent results using LLM"""
-    from langchain_core.messages import HumanMessage
-    
-    # Extract target entities from parsed entities (filter out generic terms)
-    parsed_entities = state.get("parsed_entities", [])
-    generic_terms = [
-        "tools", "businesses", "small to mid-size B2B businesses", "small to mid-size businesses", 
-        "B2B businesses", "CRM tools", "accounting tools", "software", "platforms", "solutions",
-        "systems", "applications", "products", "services", "companies", "organizations"
-    ]
-    target_entities = [entity for entity in parsed_entities if entity.lower() not in [term.lower() for term in generic_terms]]
-    target_entities_count = len(target_entities) if target_entities else 3  # Default to 3 if no entities parsed
-    
-    # Prepare context for orchestrator decision
-    decision_context = {
-        "iteration_count": state.get("iteration_count", 0),
-        "max_iterations": state.get("max_iterations", 12),
-        "last_agent": state.get("current_agent", ""),
-        "last_result": last_agent_result,
-        "research_data_quality": len(state.get("research_data", {})),
-        "analysis_quality": len(state.get("analysis_results", {})),
-        "validation_status": "validation_results" in state,
-        "data_completeness": _assess_data_completeness(state),
-        "report_quality": "final_report" in state and len(state.get("final_report", "")) > 1000,
-        "agent_call_counts": state.get("agent_call_counts", {"research_planner": 0, "data_collector": 0, "data_analyzer": 0, "quality_validator": 0, "report_synthesizer": 0}),
-        "target_entities_count": target_entities_count,
-        "target_entities": target_entities
-    }
-    
-    # Enhanced decision prompt for truly dynamic behavior
-    decision_prompt = f"""
-    You are the ORCHESTRATOR of a multi-agent research system. You must make intelligent decisions to ensure comprehensive, high-quality research.
-    
-    Current Context:
-    - Iteration Count: {decision_context['iteration_count']}/{decision_context['max_iterations']}
-    - Last Agent: {decision_context['last_agent']}
-    - Research Data Quality: {decision_context['research_data_quality']} entities
-    - Analysis Quality: {decision_context['analysis_quality']} entities
-    - Target Entities Count: {decision_context['target_entities_count']} entities
-    - Target Entities: {decision_context['target_entities']}
-    - Validation Status: {decision_context['validation_status']}
-    - Data Completeness: {decision_context['data_completeness']}
-    - Report Quality: {decision_context['report_quality']}
-    - Agent Call Counts: {decision_context['agent_call_counts']}
-    
-    Last Agent Result: {last_agent_result}
-    
-    Available Actions:
-    1. "query_parsing" - If query needs better parsing or entities are unclear
-    2. "research_planning" - If research plan is missing or needs improvement
-    3. "data_collection" - If more data is needed or data quality is poor
-    4. "data_analysis" - If data needs analysis or analysis is incomplete
-    5. "quality_validation" - If analysis needs validation
-    6. "report_synthesis" - If ready for final report
-    7. "enhance_analysis" - If analysis needs deeper insights
-    8. "additional_research" - If specific entities need more research
-    9. "cross_validation" - If findings need cross-validation
-    10. "end" - If research is complete and satisfactory
-    
-    Decision Criteria (ENSURE COMPLETE RESEARCH):
-    - If query_parsing completed AND research_planner called < 2 times → research_planning
-    - If research_planning completed AND data_collector called < 4 times → data_collection
-    - If data_collection completed AND data_analyzer called < 4 times → data_analysis
-    - If data_analysis completed AND research_data_quality < target_entities_count → data_collection (MUST collect all entities)
-    - If data_analysis completed AND research_data_quality >= target_entities_count AND quality_validator called < 2 times → quality_validation
-    - If quality_validation completed AND report_synthesizer called < 3 times → report_synthesis
-    - If report exists and covers all target entities AND iteration count >= 8 → end
-    - If iteration count > 15 → end (prevent infinite loops)
-
-    CRITICAL RULE: NEVER go to report_synthesis unless research_data_quality >= target_entities_count
-    This ensures all target entities are researched before reporting.
-    
-    Respond with ONLY the action name (e.g., "data_collection", "enhance_analysis", "additional_research", etc.)
-    """
-    
-    try:
-        response = orchestrator.llm.invoke([HumanMessage(content=decision_prompt)])
-        
-        # Show full LLM call for orchestrator decisions
-        show_llm_call(decision_prompt, response.content, "ORCHESTRATOR")
-        
-        decision = response.content.strip().lower()
-        
-        # Extract only the first word/line (the actual decision)
-        decision_clean = decision.split('\n')[0].split()[0] if decision else decision
-        
-        # Clean the decision
-        
-        # Don't add orchestrator decisions to agent messages - they're internal
-        
-        return decision_clean
-        
-    except Exception as e:
-        console.print(f"❌ Orchestrator decision failed: {e}")
-        # Fallback to dynamic flow with back-and-forth
-        if decision_context['iteration_count'] < 3:
-            return 'data_collection'
-        elif decision_context['analysis_quality'] == 0:
-            return 'data_analysis'
-        elif decision_context['iteration_count'] < 5:
-            return 'data_collection'  # Loop back for more data
-        elif decision_context['iteration_count'] < 7:
-            return 'data_analysis'  # Loop back for more analysis
-        elif decision_context['iteration_count'] < 9:
-            return 'report_synthesis'
-        else:
-            return 'end'
+# orchestrator_decision function moved to agents/agents.py for better organization
 
 
 def _assess_data_completeness(state: dict) -> str:
@@ -465,6 +358,18 @@ Current Query: {query[:100]}...
             elif decision == "data_collection":
                 show_agent_transfer("Quality Validator", "Data Collector", "Orchestrator decided to collect more data")
                 current_step = "data_collection"
+                pause_for_explanation("TRANSITION", f"Press Enter to continue with {decision.upper()}...", interactive_mode)
+            elif decision == "data_analysis":
+                show_agent_transfer("Quality Validator", "Data Analyzer", "Orchestrator decided to enhance analysis")
+                current_step = "data_analysis"
+                pause_for_explanation("TRANSITION", f"Press Enter to continue with {decision.upper()}...", interactive_mode)
+            elif decision == "additional_research":
+                show_agent_transfer("Quality Validator", "Data Collector", "Orchestrator decided to do additional research")
+                current_step = "data_collection"
+                pause_for_explanation("TRANSITION", f"Press Enter to continue with {decision.upper()}...", interactive_mode)
+            elif decision == "quality_validation":
+                show_agent_transfer("Quality Validator", "Quality Validator", "Orchestrator decided to re-validate quality")
+                current_step = "quality_validation"
                 pause_for_explanation("TRANSITION", f"Press Enter to continue with {decision.upper()}...", interactive_mode)
             elif decision == "end":
                 pause_for_explanation("TRANSITION", f"Press Enter to continue with {decision.upper()}...", interactive_mode)

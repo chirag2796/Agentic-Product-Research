@@ -577,6 +577,7 @@ class QualityValidatorAgent:
             self.console.print(f"   • Research Gaps: {len(validation_data.get('research_gaps', []))}")
             
             state["agent_call_counts"]["quality_validator"] += 1
+            state["current_agent"] = "quality_validator"  # CRITICAL: Set current agent
             
             # Determine next action based on quality score and recommendations
             overall_score = validation_data.get('overall_score', 0)
@@ -587,10 +588,10 @@ class QualityValidatorAgent:
                 last_result = "quality_validated_good"
                 self.console.print(f"   🎯 Quality is sufficient - ready for report synthesis")
             elif overall_score >= 6:
-                last_result = f"quality_validated_needs_improvement: {'; '.join(recommendations[:2])}"
+                last_result = "quality_validated_needs_improvement"
                 self.console.print(f"   ⚠️  Quality needs improvement - recommendations provided")
             else:
-                last_result = f"quality_validated_poor: {'; '.join(recommendations[:2])}"
+                last_result = "quality_validated_poor"
                 self.console.print(f"   ❌ Quality insufficient - significant improvements needed")
             
             state["agent_messages"].append(f"Quality Validator: Validated research with score {validation_data.get('overall_score', 'N/A')}/10 - {validation_status}")
@@ -606,6 +607,7 @@ class QualityValidatorAgent:
                 "validation_status": "pass"
             }
             state["agent_call_counts"]["quality_validator"] += 1
+            state["current_agent"] = "quality_validator"  # CRITICAL: Set current agent
             last_result = "quality_validated_fallback"
             state["agent_messages"].append(f"Quality Validator: Using fallback validation due to validation error")
         
@@ -760,7 +762,13 @@ def orchestrator_decision(orchestrator, state: dict, last_agent_result: str) -> 
         "target_entities": target_entities
     }
     
-    # Enhanced decision prompt for truly dynamic behavior
+    # HYBRID ORCHESTRATOR: LLM Intelligence + Quality-Driven Rules
+    iteration_count = decision_context['iteration_count']
+    agent_counts = decision_context['agent_call_counts']
+    research_data_quality = decision_context['research_data_quality']
+    target_entities_count = decision_context['target_entities_count']
+    
+    # Enhanced decision prompt with STRONG quality validation emphasis
     decision_prompt = f"""
     You are the ORCHESTRATOR of a multi-agent research system. You must make intelligent decisions to ensure comprehensive, high-quality research.
     
@@ -778,79 +786,89 @@ def orchestrator_decision(orchestrator, state: dict, last_agent_result: str) -> 
     
     Last Agent Result: {last_agent_result}
     
-    Available Actions:
-    1. "query_parsing" - If query needs better parsing or entities are unclear
-    2. "research_planning" - If research plan is missing or needs improvement
-    3. "data_collection" - If more data is needed or data quality is poor
-    4. "data_analysis" - If data needs analysis or analysis is incomplete
-    5. "quality_validation" - If analysis needs validation
-    6. "report_synthesis" - If ready for final report
-    7. "enhance_analysis" - If analysis needs deeper insights
-    8. "additional_research" - If specific entities need more research
-    9. "cross_validation" - If findings need cross-validation
-    10. "end" - If research is complete and satisfactory
+    INITIAL RESEARCH FLOW (FOLLOW SEQUENCE):
+    1. After query_parser → ALWAYS choose "research_planning" (create detailed search strategy)
+    2. After research_planner → choose "data_collection" (execute search queries)
+    3. After data_collector → if research_data_quality < target_entities_count → choose "data_collection" (collect ALL entities first)
+    4. After data_collector → if research_data_quality >= target_entities_count → choose "data_analysis" (analyze collected data)
+    5. After data_analyzer → choose "quality_validation" (validate research quality)
     
-    Decision Criteria (QUALITY-DRIVEN RESEARCH ORCHESTRATION):
+    CRITICAL QUALITY-DRIVEN RULES (MUST FOLLOW):
+    1. If last_agent_result contains "quality_validated_good" → ALWAYS choose "report_synthesis"
+    2. If last_agent_result contains "quality_validated_needs_improvement":
+       - If quality_validator called < 2 times → choose "data_collection" or "data_analysis" for improvement
+       - If quality_validator called >= 2 times → choose "report_synthesis" (prevent infinite loops)
+    3. If last_agent_result contains "quality_validated_poor":
+       - If quality_validator called < 2 times → choose "data_collection" for more data
+       - If quality_validator called >= 2 times → choose "report_synthesis" (prevent infinite loops)
     
-    INITIAL RESEARCH FLOW:
-    - If query_parsing completed AND research_planner called < 2 times → research_planning
-    - If research_planning completed AND data_collector called < 3 times → data_collection
-    - If data_collection completed AND data_analyzer called < 3 times → data_analysis
-    - If data_analysis completed AND research_data_quality < target_entities_count → data_collection (collect all entities)
-    - If data_analysis completed AND research_data_quality >= target_entities_count AND quality_validator called < 2 times → quality_validation
-    
-    QUALITY-DRIVEN DECISIONS (PRIORITY):
-    - If "quality_validated_good" → report_synthesis
-    - If "quality_validated_needs_improvement" AND quality_validator called < 2 → additional_research OR data_collection (improve quality)
-    - If "quality_validated_poor" AND quality_validator called < 2 → data_collection OR additional_research (collect more data)
-    - If quality_validator called >= 2 times → report_synthesis (after 2 quality checks, proceed to report)
-    
-    SAFETY RULES (ONLY if no quality rules apply):
-    - If iteration count >= 12 → report_synthesis
-    - If iteration count > 15 → end (prevent infinite loops)
-
     INTELLIGENT DECISION MAKING:
-    - Use quality validation results to drive improvement actions
+    - Use your intelligence to determine the best improvement strategy
+    - Consider what type of improvement is needed (more data vs better analysis)
     - Balance thoroughness with efficiency
+    - Make contextual decisions based on the research progress
     - Ensure comprehensive coverage before final report
-    - Allow for iterative improvement cycles
-    - Prevent infinite loops while maintaining quality
     
-    Respond with ONLY the action name (e.g., "data_collection", "enhance_analysis", "additional_research", etc.)
+    Available Actions:
+    1. "research_planning" - If research plan needs improvement
+    2. "data_collection" - If more data is needed or quality is poor
+    3. "data_analysis" - If data needs analysis or deeper insights
+    4. "quality_validation" - If analysis needs validation
+    5. "report_synthesis" - If ready for final report
+    6. "additional_research" - If specific entities need more research
+    7. "end" - If research is complete and satisfactory
+    
+    SAFETY RULES:
+    - If iteration count >= 12 → choose "report_synthesis"
+    - If iteration count > 15 → choose "end"
+    
+    Respond with ONLY the action name (e.g., "data_collection", "data_analysis", "quality_validation", etc.)
     """
     
     try:
         response = orchestrator.llm.invoke([HumanMessage(content=decision_prompt)])
-        
-        # Show full LLM call for orchestrator decisions
-        # show_llm_call(decision_prompt, response.content, "ORCHESTRATOR")
-        
         decision = response.content.strip().lower()
         
         # Extract only the first word/line (the actual decision)
         decision_clean = decision.split('\n')[0].split()[0] if decision else decision
         
-        # Clean the decision
+        # CRITICAL: Enforce quality validation rules if LLM ignores them
+        if "quality_validated_good" in last_agent_result:
+            return "report_synthesis"
+        elif "quality_validated_needs_improvement" in last_agent_result:
+            if agent_counts.get("quality_validator", 0) < 2:
+                return "data_collection"  # FORCE improvement - override LLM
+            else:
+                return "report_synthesis"  # Force report after 2 quality checks
+        elif "quality_validated_poor" in last_agent_result:
+            if agent_counts.get("quality_validator", 0) < 2:
+                return "data_collection"  # FORCE improvement - override LLM
+            else:
+                return "report_synthesis"  # Force report after 2 quality checks
         
-        # Don't add orchestrator decisions to agent messages - they're internal
+        # Safety rules
+        if iteration_count >= 12:
+            return "report_synthesis"
+        elif iteration_count > 15:
+            return "end"
         
         return decision_clean
         
     except Exception as e:
         print(f"❌ Orchestrator decision failed: {e}")
-        # Fallback to dynamic flow with back-and-forth
-        if decision_context['iteration_count'] < 3:
-            return 'data_collection'
-        elif decision_context['analysis_quality'] == 0:
-            return 'data_analysis'
-        elif decision_context['iteration_count'] < 5:
-            return 'data_collection'  # Loop back for more data
-        elif decision_context['iteration_count'] < 7:
-            return 'data_analysis'  # Loop back for more analysis
-        elif decision_context['iteration_count'] < 9:
-            return 'report_synthesis'
+        # Fallback to quality-aware logic
+        if "quality_validated_good" in last_agent_result:
+            return "report_synthesis"
+        elif "quality_validated_needs_improvement" in last_agent_result:
+            return "data_collection" if agent_counts.get("quality_validator", 0) < 2 else "report_synthesis"
+        elif "quality_validated_poor" in last_agent_result:
+            return "data_collection" if agent_counts.get("quality_validator", 0) < 2 else "report_synthesis"
+        elif iteration_count < 5:
+            return "data_collection"
+        elif iteration_count < 8:
+            return "data_analysis"
         else:
-            return 'end'
+            return "report_synthesis"
 
 
 def _assess_data_completeness(state: dict) -> str:
