@@ -197,6 +197,24 @@ class ResearchPlannerAgent:
             elif "```" in content:
                 content = content.split("```")[1].split("```")[0].strip()
             
+            # Remove any non-printable characters that might cause JSON parsing issues
+            content = ''.join(char for char in content if ord(char) >= 32 or char in '\n\r\t')
+            
+            # Find the JSON object boundaries more carefully
+            start_idx = content.find('{')
+            if start_idx != -1:
+                brace_count = 0
+                end_idx = start_idx
+                for i, char in enumerate(content[start_idx:], start_idx):
+                    if char == '{':
+                        brace_count += 1
+                    elif char == '}':
+                        brace_count -= 1
+                        if brace_count == 0:
+                            end_idx = i + 1
+                            break
+                content = content[start_idx:end_idx]
+            
             plan_data = json.loads(content)
             
             state["research_context"]["research_plan"] = plan_data
@@ -278,11 +296,11 @@ class DataCollectorAgent:
         else:
             focus_areas = ["pricing", "features", "integrations", "limitations"]
         
-        # If we have fallback entities, create proper search queries using parsed entities
+        # If no search queries available, create simple fallback
         if not search_queries or (len(search_queries) == 1 and search_queries[0]["entity"] == "Unknown"):
-            # Create search queries for any domain
+            # Simple fallback - assume Research Planner will provide proper queries in normal operation
             search_queries = [
-                {"entity": entity, "focus": focus, "query": f"{entity} {focus} small business"}
+                {"entity": entity, "focus": focus, "query": f"{entity} {focus}"}
                 for entity in target_entities for focus in focus_areas
             ]
             state["research_context"]["research_plan"] = {"search_queries": search_queries}
