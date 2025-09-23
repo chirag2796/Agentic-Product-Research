@@ -1,13 +1,9 @@
-"""
-Proper agent implementations extracted from main.py with exact same functionality
-"""
 import json
 from typing import Dict, Any
 from langchain_core.messages import HumanMessage
 from langchain_openai import ChatOpenAI
 from tools.web_search_tool import WebSearchTool
 from config import OPENROUTER_BASE_URL, OPENROUTER_MODEL, OPENROUTER_API_KEY
-import os
 
 
 class GenericResearchOrchestrator:
