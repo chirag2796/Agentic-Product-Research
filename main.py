@@ -10,7 +10,7 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.text import Text
 
-from agents.generic_agents import GenericResearchOrchestrator, GenericAgentState
+from agents.agents import GenericResearchOrchestrator, GenericAgentState
 from utils.html_generator import HTMLReportGenerator
 from config import ASSIGNMENT_QUERY
 from agents.agents import (

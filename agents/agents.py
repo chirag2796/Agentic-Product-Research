@@ -4,6 +4,31 @@ Proper agent implementations extracted from main.py with exact same functionalit
 import json
 from typing import Dict, Any
 from langchain_core.messages import HumanMessage
+from langchain_openai import ChatOpenAI
+from tools.web_search_tool import WebSearchTool
+from config import OPENROUTER_BASE_URL, OPENROUTER_MODEL, OPENROUTER_API_KEY
+import os
+
+
+class GenericResearchOrchestrator:
+    """Research orchestrator that provides LLM and web search capabilities"""
+    
+    def __init__(self):
+        # Initialize LLM using config
+        self.llm = ChatOpenAI(
+            base_url=OPENROUTER_BASE_URL,
+            api_key=OPENROUTER_API_KEY,
+            model=OPENROUTER_MODEL,
+            temperature=0.1
+        )
+        
+        # Initialize web search tool
+        self.web_search_tool = WebSearchTool()
+
+
+class GenericAgentState:
+    """Generic agent state class for compatibility"""
+    pass
 
 
 class QueryParserAgent:
@@ -600,6 +625,10 @@ class ReportSynthesizerAgent:
         8. Offers clear recommendations for different business types
         9. NO CHARACTER LIMIT - make it as comprehensive as needed
         10. Ensure equal coverage of {entity_list}
+        
+        WRITING STYLE: Use detailed, narrative paragraphs with thorough explanations. 
+        Write like a business analyst with flowing text rather than simple bullet points. 
+        Provide context and reasoning behind recommendations.
         
         CRITICAL: The report must include detailed information about ALL {entity_count} entities:
         {chr(10).join([f"- {entity}: Include all {focus_areas_list}" for entity in target_entities])}
