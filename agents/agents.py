@@ -802,7 +802,7 @@ def orchestrator_decision(orchestrator, state: dict, last_agent_result: str) -> 
     
     RESEARCH ORCHESTRATION GUIDANCE:
     
-    When the system has just parsed a query, the research_planning agent creates a strategic foundation 
+    The research_planning agent creates a strategic foundation 
     by developing detailed search queries and methodology. This transforms raw query understanding into 
     actionable research steps, establishing the roadmap for comprehensive data collection.
     
@@ -810,8 +810,7 @@ def orchestrator_decision(orchestrator, state: dict, last_agent_result: str) -> 
     It works iteratively to ensure all target entities receive adequate coverage. When research_data_quality 
     shows fewer entities than target_entities_count, more collection is needed to achieve comprehensive coverage.
     
-    Once data collection reaches target completeness, the data_analysis agent processes and synthesizes 
-    the gathered information. This agent transforms raw research data into structured insights, creating 
+    The data_analysis agent processes and synthesizes the gathered information. This agent transforms raw research data into structured insights, creating 
     the analytical foundation necessary for quality assessment.
     
     The quality_validation agent serves as the research quality gatekeeper. When validation results indicate 
