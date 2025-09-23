@@ -1,6 +1,5 @@
 """
-Truly Dynamic Generic AI Agent Research System - Fixed Version
-Demonstrates real agentic orchestration with non-linear flows and inter-agent communication
+Dynamic Generic AI Agent Research System
 """
 import argparse
 import json
