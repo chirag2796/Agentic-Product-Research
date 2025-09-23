@@ -634,7 +634,11 @@ Current Query: {query[:100]}...
             console.print(f"   Iteration: {state['iteration_count']}/{state['max_iterations']}")
             
             # Show agent transfer
-            if decision == "data_analysis":
+            if decision == "data_collection":
+                show_agent_transfer("Data Collector", "Data Collector", "Orchestrator decided to collect more data")
+                current_step = "data_collection"  # Loop back for more data collection
+                pause_for_explanation("TRANSITION", f"Press Enter to continue with {decision.upper()}...", interactive_mode)
+            elif decision == "data_analysis":
                 show_agent_transfer("Data Collector", "Data Analyzer", "Orchestrator decided to analyze collected data")
                 current_step = "data_analysis"
                 pause_for_explanation("TRANSITION", f"Press Enter to continue with {decision.upper()}...", interactive_mode)
