@@ -329,6 +329,27 @@ class DataCollectorAgent:
                                     break
                         break
         
+        # If still no queries (quality improvement cycle), collect additional depth for all entities
+        if not queries_to_process and state["agent_call_counts"]["data_collector"] > 3:
+            self.console.print("   🔍 Quality improvement cycle - collecting comprehensive additional data...")
+            # Create enhanced search queries for deeper research on ALL entities
+            improvement_queries = [
+                f"{entity} detailed user reviews and ratings",
+                f"{entity} real world implementation case studies small business",
+                f"{entity} pros and cons comparison small to medium business",
+                f"{entity} cost total ownership analysis",
+                f"{entity} customer support and training resources"
+            ]
+            
+            for entity in target_entities:
+                for query_template in improvement_queries[:3]:  # 3 queries per entity
+                    enhanced_query = query_template.format(entity=entity) if "{entity}" in query_template else query_template.replace(entity.split()[0], entity)
+                    queries_to_process.append({"entity": entity, "focus": "quality_enhancement", "query": enhanced_query})
+                    if len(queries_to_process) >= 6:  # Collect 6 comprehensive improvement searches
+                        break
+                if len(queries_to_process) >= 6:
+                    break
+        
         for i, query_info in enumerate(queries_to_process, 1):
             entity = query_info["entity"]
             focus = query_info["focus"]
@@ -394,9 +415,12 @@ class DataAnalyzerAgent:
         
         analysis_results = state.get("analysis_results", {})
         
-        # Analyze all entities in research data that haven't been analyzed yet
+        # Analyze all entities in research data (re-analyze if new data available)
         for entity in research_data:
-            if entity not in analysis_results:
+            # Check if this is a re-analysis cycle (more than 3 data collector calls)
+            is_reanalysis = state["agent_call_counts"]["data_collector"] > 3
+            
+            if entity not in analysis_results or is_reanalysis:
                 entity_data = research_data[entity]
                 
                 self.console.print(f"   🔍 Analyzing {entity}...")
@@ -495,12 +519,18 @@ class QualityValidatorAgent:
         2. Analysis quality (are the analyses thorough and consistent?)
         3. Research gaps (what's missing or needs improvement?)
         4. Overall quality score (1-10) - BE GENEROUS: 6+ for partial data, 8+ for complete data
-        5. Recommendations for improvement
+        5. Specific actionable recommendations for improvement
         
         SCORING GUIDELINES:
         - 6-7: Good progress with partial data
         - 8-9: Excellent with complete data
         - 10: Outstanding comprehensive research
+        
+        RECOMMENDATIONS SHOULD BE SPECIFIC:
+        - "Collect more pricing data for X entity"
+        - "Enhance analysis depth for Y focus area"  
+        - "Additional research needed on Z integration details"
+        - "Cross-validate findings with expert sources"
         
         Return as JSON format:
         {{
@@ -547,8 +577,23 @@ class QualityValidatorAgent:
             self.console.print(f"   • Research Gaps: {len(validation_data.get('research_gaps', []))}")
             
             state["agent_call_counts"]["quality_validator"] += 1
-            last_result = "quality_validated"
-            state["agent_messages"].append(f"Quality Validator: Validated research with score {validation_data.get('overall_score', 'N/A')}/10")
+            
+            # Determine next action based on quality score and recommendations
+            overall_score = validation_data.get('overall_score', 0)
+            validation_status = validation_data.get('validation_status', 'fail')
+            recommendations = validation_data.get('recommendations', [])
+            
+            if overall_score >= 8 or validation_status == 'pass':
+                last_result = "quality_validated_good"
+                self.console.print(f"   🎯 Quality is sufficient - ready for report synthesis")
+            elif overall_score >= 6:
+                last_result = f"quality_validated_needs_improvement: {'; '.join(recommendations[:2])}"
+                self.console.print(f"   ⚠️  Quality needs improvement - recommendations provided")
+            else:
+                last_result = f"quality_validated_poor: {'; '.join(recommendations[:2])}"
+                self.console.print(f"   ❌ Quality insufficient - significant improvements needed")
+            
+            state["agent_messages"].append(f"Quality Validator: Validated research with score {validation_data.get('overall_score', 'N/A')}/10 - {validation_status}")
 
         except Exception as e:
             self.console.print(f"❌ Quality validation failed: {e}")
@@ -745,18 +790,31 @@ def orchestrator_decision(orchestrator, state: dict, last_agent_result: str) -> 
     9. "cross_validation" - If findings need cross-validation
     10. "end" - If research is complete and satisfactory
     
-    Decision Criteria (ENSURE COMPLETE RESEARCH):
+    Decision Criteria (QUALITY-DRIVEN RESEARCH ORCHESTRATION):
+    
+    INITIAL RESEARCH FLOW:
     - If query_parsing completed AND research_planner called < 2 times → research_planning
-    - If research_planning completed AND data_collector called < 4 times → data_collection
-    - If data_collection completed AND data_analyzer called < 4 times → data_analysis
-    - If data_analysis completed AND research_data_quality < target_entities_count → data_collection (MUST collect all entities)
+    - If research_planning completed AND data_collector called < 3 times → data_collection
+    - If data_collection completed AND data_analyzer called < 3 times → data_analysis
+    - If data_analysis completed AND research_data_quality < target_entities_count → data_collection (collect all entities)
     - If data_analysis completed AND research_data_quality >= target_entities_count AND quality_validator called < 2 times → quality_validation
-    - If quality_validation completed AND report_synthesizer called < 3 times → report_synthesis
-    - If report exists and covers all target entities AND iteration count >= 8 → end
+    
+    QUALITY-DRIVEN DECISIONS (PRIORITY):
+    - If "quality_validated_good" → report_synthesis
+    - If "quality_validated_needs_improvement" AND quality_validator called < 2 → additional_research OR data_collection (improve quality)
+    - If "quality_validated_poor" AND quality_validator called < 2 → data_collection OR additional_research (collect more data)
+    - If quality_validator called >= 2 times → report_synthesis (after 2 quality checks, proceed to report)
+    
+    SAFETY RULES (ONLY if no quality rules apply):
+    - If iteration count >= 12 → report_synthesis
     - If iteration count > 15 → end (prevent infinite loops)
 
-    CRITICAL RULE: NEVER go to report_synthesis unless research_data_quality >= target_entities_count
-    This ensures all target entities are researched before reporting.
+    INTELLIGENT DECISION MAKING:
+    - Use quality validation results to drive improvement actions
+    - Balance thoroughness with efficiency
+    - Ensure comprehensive coverage before final report
+    - Allow for iterative improvement cycles
+    - Prevent infinite loops while maintaining quality
     
     Respond with ONLY the action name (e.g., "data_collection", "enhance_analysis", "additional_research", etc.)
     """
