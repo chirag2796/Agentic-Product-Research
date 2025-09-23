@@ -571,10 +571,17 @@ class QualityValidatorAgent:
             validation_data = json.loads(result)
             
             state["validation_results"] = validation_data
-            self.console.print(f"✅ Quality validation completed!")
-            self.console.print(f"   • Overall Score: {validation_data.get('overall_score', 'N/A')}/10")
-            self.console.print(f"   • Validation Status: {validation_data.get('validation_status', 'N/A')}")
-            self.console.print(f"   • Research Gaps: {len(validation_data.get('research_gaps', []))}")
+            
+            # Show different detail levels based on validation count for better presentation
+            current_validation_count = state["agent_call_counts"]["quality_validator"]
+            
+            if current_validation_count == 0:  # First validation - show full details
+                self.console.print(f"✅ Quality validation completed!")
+                self.console.print(f"   • Overall Score: {validation_data.get('overall_score', 'N/A')}/10")
+                self.console.print(f"   • Validation Status: {validation_data.get('validation_status', 'N/A')}")
+                self.console.print(f"   • Research Gaps: {len(validation_data.get('research_gaps', []))}")
+            else:  # Subsequent validations - simplified display
+                self.console.print(f"✅ Quality validation completed!")
             
             state["agent_call_counts"]["quality_validator"] += 1
             state["current_agent"] = "quality_validator"  # CRITICAL: Set current agent
@@ -586,15 +593,22 @@ class QualityValidatorAgent:
             
             if overall_score >= 8 or validation_status == 'pass':
                 last_result = "quality_validated_good"
-                self.console.print(f"   🎯 Quality is sufficient - ready for report synthesis")
+                if current_validation_count == 0:
+                    self.console.print(f"   🎯 Quality is sufficient - ready for report synthesis")
             elif overall_score >= 6:
                 last_result = "quality_validated_needs_improvement"
-                self.console.print(f"   ⚠️  Quality needs improvement - recommendations provided")
+                if current_validation_count == 0:
+                    self.console.print(f"   ⚠️  Quality needs improvement - recommendations provided")
             else:
                 last_result = "quality_validated_poor"
-                self.console.print(f"   ❌ Quality insufficient - significant improvements needed")
+                if current_validation_count == 0:
+                    self.console.print(f"   ❌ Quality insufficient - significant improvements needed")
             
-            state["agent_messages"].append(f"Quality Validator: Validated research with score {validation_data.get('overall_score', 'N/A')}/10 - {validation_status}")
+            # Cleaner agent messages for presentation
+            if current_validation_count == 0:
+                state["agent_messages"].append(f"Quality Validator: Validated research with score {validation_data.get('overall_score', 'N/A')}/10 - {validation_status}")
+            else:
+                state["agent_messages"].append(f"Quality Validator: Validated research")
 
         except Exception as e:
             self.console.print(f"❌ Quality validation failed: {e}")
