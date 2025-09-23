@@ -505,46 +505,75 @@ class QualityValidatorAgent:
         self.show_agent_working("Quality Validator Agent", "Validating research quality...")
         
         # Validate research quality
+        # Prepare context-rich information for quality assessment
+        research_data = state.get('research_data', {})
+        analysis_results = state.get('analysis_results', {})
+        target_entities = [entity for entity in state['parsed_entities'] if entity not in ['tools', 'businesses', 'software', 'platforms', 'solutions']]
+        
+        # Build detailed context about what has been researched and analyzed
+        research_context = []
+        for entity in target_entities:
+            if entity in research_data:
+                focus_areas_covered = list(research_data[entity].keys())
+                research_context.append(f"{entity}: Data collected for {focus_areas_covered}")
+            else:
+                research_context.append(f"{entity}: No data collected")
+        
+        analysis_context = []
+        for entity in target_entities:
+            if entity in analysis_results:
+                analysis_preview = analysis_results[entity][:200] + "..." if len(analysis_results[entity]) > 200 else analysis_results[entity]
+                analysis_context.append(f"{entity}: Analysis completed - {analysis_preview}")
+            else:
+                analysis_context.append(f"{entity}: No analysis available")
+        
         validation_prompt = f"""
-        You are a quality validator. Validate the research quality for:
+        You are a quality validator assessing research comprehensiveness and depth for:
         
-        Query: {state['original_query']}
-        Entities: {state['parsed_entities']}
+        Original Query: {state['original_query']}
+        Target Entities: {target_entities}
         Focus Areas: {state['research_focus_areas']}
-        Research Data: {len(state.get('research_data', {}))} entities
-        Analysis Results: {len(state.get('analysis_results', {}))} entities
         
-        Validate and assess with GENEROUS scoring:
-        1. Data completeness (are all entities and focus areas covered?)
-        2. Analysis quality (are the analyses thorough and consistent?)
-        3. Research gaps (what's missing or needs improvement?)
-        4. Overall quality score (1-10) - BE GENEROUS: 6+ for partial data, 8+ for complete data
-        5. Specific actionable recommendations for improvement
+        CURRENT RESEARCH STATUS:
+        {chr(10).join(research_context)}
         
-        SCORING GUIDELINES:
-        - 6-7: Good progress with partial data
-        - 8-9: Excellent with complete data
-        - 10: Outstanding comprehensive research
+        ANALYSIS CONTENT OVERVIEW:
+        {chr(10).join(analysis_context)}
         
-        RECOMMENDATIONS SHOULD BE SPECIFIC:
-        - "Collect more pricing data for X entity"
-        - "Enhance analysis depth for Y focus area"  
-        - "Additional research needed on Z integration details"
-        - "Cross-validate findings with expert sources"
+        QUALITY ASSESSMENT CONTEXT:
+        - Total entities with data: {len(research_data)} of {len(target_entities)} target entities
+        - Total entities analyzed: {len(analysis_results)} entities
+        - Focus areas defined: {len(state['research_focus_areas'])}
+        - Research depth varies by entity based on data availability
+        
+        Evaluate the research quality considering:
+        1. Entity Coverage: Are all target entities represented with meaningful data?
+        2. Focus Area Completeness: Do entities have data across the specified focus areas?
+        3. Analysis Depth: Are the analyses substantive and provide actionable insights?
+        4. Comparative Readiness: Is there sufficient information for meaningful comparison?
+        5. Gap Identification: What specific improvements would enhance research value?
+        
+        INTELLIGENT SCORING (1-10):
+        - Consider both breadth (entity coverage) and depth (analysis quality)
+        - 6-7: Solid foundation with some gaps that could be improved
+        - 8-9: Comprehensive coverage with good analytical depth
+        - 10: Exceptional research with comprehensive insights across all dimensions
+        
+        Provide specific, actionable recommendations based on actual content gaps, not just numerical deficiencies.
         
         Return as JSON format:
         {{
             "data_completeness": {{
                 "score": 8,
-                "details": "description of completeness"
+                "details": "assessment based on entity and focus area coverage"
             }},
             "analysis_quality": {{
                 "score": 7,
-                "details": "description of analysis quality"
+                "details": "assessment based on analytical depth and insight quality"
             }},
-            "research_gaps": ["gap1", "gap2"],
+            "research_gaps": ["specific gap1", "specific gap2"],
             "overall_score": 7.5,
-            "recommendations": ["recommendation1", "recommendation2"],
+            "recommendations": ["specific actionable recommendation1", "specific actionable recommendation2"],
             "validation_status": "pass|needs_improvement|fail"
         }}
         """
@@ -604,11 +633,7 @@ class QualityValidatorAgent:
                 if current_validation_count == 0:
                     self.console.print(f"   ❌ Quality insufficient - significant improvements needed")
             
-            # Cleaner agent messages for presentation
-            if current_validation_count == 0:
-                state["agent_messages"].append(f"Quality Validator: Validated research with score {validation_data.get('overall_score', 'N/A')}/10 - {validation_status}")
-            else:
-                state["agent_messages"].append(f"Quality Validator: Validated research")
+            state["agent_messages"].append(f"Quality Validator: Validated research")
 
         except Exception as e:
             self.console.print(f"❌ Quality validation failed: {e}")
