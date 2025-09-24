@@ -19,7 +19,8 @@ Return as JSON format:
     "output_format": "report|table|analysis|summary"
 }
 
-Query parse response:
+Query parser response:
+
 {
     "entities": [
         "HubSpot",
@@ -36,7 +37,7 @@ Query parse response:
         "Business suitability"
     ],
     "research_type": "comparison",
-    "output_format": "summary"
+    "output_format": "report"
 }
 
 
@@ -351,7 +352,7 @@ The analysis suggests HubSpot offers a robust, comprehensive platform with stron
 
 
 
-Data Validor prompt:
+Data Validator prompt:
 You are a quality validator assessing research comprehensiveness and depth for:
 
 Original Query: We're evaluating CRM tools. Give me a summarized comparison between HubSpot, Zoho, and Salesforce for small to mid-size B2B businesses. Focus on pricing, features, integrations, and limitations.

@@ -325,29 +325,31 @@ class DataCollectorAgent:
                             matching_queries = [q for q in search_queries if q["entity"] == entity and q["focus"] == focus]
                             if matching_queries:
                                 queries_to_process.append(matching_queries[0])
-                                if len(queries_to_process) >= 4:  # Limit to 4 queries per iteration
+                                if len(queries_to_process) >= 8:
                                     break
-                        break
+                        if len(queries_to_process) >= 8:  # Break outer loop when we have enough queries
+                            break
         
         # If still no queries (quality improvement cycle), collect additional depth for all entities
-        if not queries_to_process and state["agent_call_counts"]["data_collector"] > 3:
+        quality_validator_count = state["agent_call_counts"].get("quality_validator", 0)
+        if not queries_to_process and quality_validator_count > 0:
             self.console.print("   🔍 Quality improvement cycle - collecting comprehensive additional data...")
             # Create enhanced search queries for deeper research on ALL entities
             improvement_queries = [
                 f"{entity} detailed user reviews and ratings",
-                f"{entity} real world implementation case studies small business",
+                f"{entity} real world implementation case studies small business", 
                 f"{entity} pros and cons comparison small to medium business",
                 f"{entity} cost total ownership analysis",
                 f"{entity} customer support and training resources"
             ]
             
             for entity in target_entities:
-                for query_template in improvement_queries[:3]:  # 3 queries per entity
+                for query_template in improvement_queries[:4]:
                     enhanced_query = query_template.format(entity=entity) if "{entity}" in query_template else query_template.replace(entity.split()[0], entity)
                     queries_to_process.append({"entity": entity, "focus": "quality_enhancement", "query": enhanced_query})
-                    if len(queries_to_process) >= 6:  # Collect 6 comprehensive improvement searches
+                    if len(queries_to_process) >= 12:
                         break
-                if len(queries_to_process) >= 6:
+                if len(queries_to_process) >= 12:
                     break
         
         for i, query_info in enumerate(queries_to_process, 1):

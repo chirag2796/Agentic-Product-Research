@@ -113,24 +113,6 @@ def save_results(state: dict, results_dir: Path):
     console.print(f"  • HTML: {html_file.name}")
 
 
-# orchestrator_decision function moved to agents/agents.py for better organization
-
-
-def _assess_data_completeness(state: dict) -> str:
-    """Assess data completeness"""
-    research_data = state.get("research_data", {})
-    analysis_results = state.get("analysis_results", {})
-    
-    if len(research_data) == 0:
-        return "No data"
-    elif len(research_data) < 2:
-        return "Incomplete"
-    elif len(analysis_results) == 0:
-        return "Partial"
-    else:
-        return "Complete"
-
-
 def run_research(query: str, interactive_mode: bool = False):
     """Run dynamic research with orchestration"""
     console.print("🚀 Starting AI Research System...")
