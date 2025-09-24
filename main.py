@@ -299,6 +299,7 @@ def orchestrator_routing(state: AgentState) -> str:
     console.print(f"[bold]ORCHESTRATOR DECISION:[/bold] {decision.upper()}")
     console.print(f"   Based on: {current_agent} result")
     console.print(f"   Iteration: {state.get('iteration_count', 0)}/{state.get('max_iterations', 15)}")
+    console.print(f"   Raw decision: '{decision}'")
     
     # Show state info if interactive
     if state.get("interactive_mode", False):

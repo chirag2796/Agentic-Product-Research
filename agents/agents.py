@@ -109,7 +109,7 @@ class QueryParserAgent:
             state["current_agent"] = "query_parser"
             state["agent_messages"].append(f"Query Parser: Parsed query and identified {len(state['parsed_entities'])} entities and {len(state['research_focus_areas'])} focus areas")
             
-            self.console.print(f"✅ Query parsed successfully!")
+            self.console.print(f"Query parsed successfully!")
             self.console.print(f"   • Entities: {', '.join(state['parsed_entities'])}")
             self.console.print(f"   • Focus Areas: {', '.join(state['research_focus_areas'])}")
             self.console.print(f"   • Research Type: {state['research_context']['research_type']}")
@@ -330,7 +330,14 @@ class DataCollectorAgent:
                         break
         
         # If still no queries (quality improvement cycle), collect additional depth for all entities
-        if not queries_to_process and state["agent_call_counts"]["data_collector"] > 3:
+        data_collector_count = state["agent_call_counts"]["data_collector"]
+        quality_validator_count = state["agent_call_counts"].get("quality_validator", 0)
+        
+        # Debug info
+        self.console.print(f"   📊 Data Collector calls: {data_collector_count}, Quality Validator calls: {quality_validator_count}")
+        self.console.print(f"   📊 Queries to process: {len(queries_to_process)}")
+        
+        if not queries_to_process and (data_collector_count > 3 or quality_validator_count > 0):
             self.console.print("   🔍 Quality improvement cycle - collecting comprehensive additional data...")
             # Create enhanced search queries for deeper research on ALL entities
             improvement_queries = [
@@ -417,10 +424,24 @@ class DataAnalyzerAgent:
         
         # Analyze all entities in research data (re-analyze if new data available)
         for entity in research_data:
-            # Check if this is a re-analysis cycle (more than 3 data collector calls)
-            is_reanalysis = state["agent_call_counts"]["data_collector"] > 3
+            # Check if this is a re-analysis cycle
+            # Re-analyze if: 1) Never analyzed before, 2) Quality validation has happened, 3) New data collected
+            quality_validation_count = state["agent_call_counts"].get("quality_validator", 0)
+            is_reanalysis = quality_validation_count > 0  # If quality validation happened, always re-analyze
             
-            if entity not in analysis_results or is_reanalysis:
+            # Also check if entity data has potentially grown (rough heuristic)
+            entity_data_size = sum(len(str(data)) for data in research_data[entity].values())
+            was_analyzed_before = entity in analysis_results
+            
+            # Always re-analyze if: not analyzed before, or quality validation suggests improvement
+            should_analyze = (not was_analyzed_before or 
+                            is_reanalysis or 
+                            (was_analyzed_before and entity_data_size > 2000))  # More data available
+            
+            # Debug info
+            self.console.print(f"   🔍 Entity: {entity} - Was analyzed: {was_analyzed_before}, Quality validation count: {quality_validation_count}, Reanalysis: {is_reanalysis}, Data size: {entity_data_size}, Should analyze: {should_analyze}")
+            
+            if should_analyze:
                 entity_data = research_data[entity]
                 
                 self.console.print(f"   🔍 Analyzing {entity}...")
@@ -459,6 +480,10 @@ class DataAnalyzerAgent:
                     }
                     self.console.print(f"   ✅ {entity} analysis completed: {len(response.content)} characters")
                     
+                    # Debug info for re-analysis
+                    if is_reanalysis:
+                        self.console.print(f"   🔄 Re-analysis performed after quality validation feedback")
+                    
                 except Exception as e:
                     analysis_results[entity] = {
                         "analysis": f"Analysis failed: {e}",
@@ -466,6 +491,9 @@ class DataAnalyzerAgent:
                         "data_quality": "low"
                     }
                     self.console.print(f"   ❌ {entity} analysis failed: {e}")
+            else:
+                # Debug: Show why analysis was skipped
+                self.console.print(f"   ⏭️  Skipping {entity} analysis - already analyzed: {was_analyzed_before}, reanalysis needed: {is_reanalysis}, data size: {entity_data_size}")
         
         state["analysis_results"] = analysis_results
         state["current_agent"] = "data_analyzer"
@@ -522,7 +550,9 @@ class QualityValidatorAgent:
         analysis_context = []
         for entity in target_entities:
             if entity in analysis_results:
-                analysis_preview = analysis_results[entity][:200] + "..." if len(analysis_results[entity]) > 200 else analysis_results[entity]
+                # Extract the analysis text from the dictionary
+                analysis_text = analysis_results[entity].get("analysis", "") if isinstance(analysis_results[entity], dict) else analysis_results[entity]
+                analysis_preview = analysis_text[:200] + "..." if len(analysis_text) > 200 else analysis_text
                 analysis_context.append(f"{entity}: Analysis completed - {analysis_preview}")
             else:
                 analysis_context.append(f"{entity}: No analysis available")
