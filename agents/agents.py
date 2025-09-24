@@ -772,7 +772,7 @@ class ReportSynthesizerAgent:
         return state, last_result
 
 
-# Orchestrator functions - EXACT same code from main.py
+# Orchestrator functions
 def orchestrator_decision(orchestrator, state: dict, last_agent_result: str) -> str:
     """Make dynamic orchestrator decisions based on agent results using LLM"""
     # Extract target entities from parsed entities (filter out generic terms)
