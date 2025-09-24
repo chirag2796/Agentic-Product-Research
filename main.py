@@ -40,6 +40,8 @@ class AgentState(TypedDict):
     agent_call_counts: dict
     iteration_count: int
     max_iterations: int
+    interactive_mode: NotRequired[bool]
+    research_queries: NotRequired[list]
 
 
 def pause_for_explanation(title: str, explanation: str, interactive_mode: bool):
@@ -87,8 +89,16 @@ def show_agent_transfer(from_agent: str, to_agent: str, reason: str):
 def show_agent_transfer_chain(agent_messages: list):
     """Show complete agent transfer chain"""
     if agent_messages:
+        # Remove duplicates while preserving order
+        unique_messages = []
+        seen = set()
+        for message in agent_messages:
+            if message not in seen:
+                unique_messages.append(message)
+                seen.add(message)
+        
         console.print(f"\n[bold]COMPLETE AGENT TRANSFER CHAIN:[/bold]")
-        for i, message in enumerate(agent_messages):
+        for i, message in enumerate(unique_messages):
             if i == 0:
                 console.print(f"   {message}")
             else:
@@ -157,27 +167,38 @@ def save_results(state: dict, results_dir: Path):
 # LangGraph Node Functions
 def query_parser_node(state: AgentState) -> AgentState:
     """LangGraph node for query parsing"""
+    # Only run if this is the first iteration or if we haven't parsed yet
+    if state.get("parsed_entities") and len(state.get("parsed_entities", [])) > 0:
+        return state  # Skip if already parsed
+        
     orchestrator = GenericResearchOrchestrator()
     agent = QueryParserAgent(orchestrator, console, show_agent_working, show_llm_call, pause_for_explanation)
     
-    interactive_mode = False  # Set based on your needs
+    # Get interactive mode from state
+    interactive_mode = state.get("interactive_mode", False)
     new_state, last_result = agent.execute(state["original_query"], state, interactive_mode)
     
     # Update iteration count
     new_state["iteration_count"] = state.get("iteration_count", 0) + 1
+    new_state["interactive_mode"] = interactive_mode  # Preserve interactive mode
     
     return new_state
 
 
 def research_planner_node(state: AgentState) -> AgentState:
     """LangGraph node for research planning"""
+    # Only run if we haven't planned yet or need to replan
+    if state.get("research_queries") and len(state.get("research_queries", [])) > 0:
+        return state  # Skip if already planned
+        
     orchestrator = GenericResearchOrchestrator()
     agent = ResearchPlannerAgent(orchestrator, console, show_agent_working, show_llm_call, pause_for_explanation)
     
-    interactive_mode = False
+    interactive_mode = state.get("interactive_mode", False)
     new_state, last_result = agent.execute(state, interactive_mode)
     
     new_state["iteration_count"] = state.get("iteration_count", 0) + 1
+    new_state["interactive_mode"] = interactive_mode
     
     return new_state
 
@@ -187,10 +208,11 @@ def data_collector_node(state: AgentState) -> AgentState:
     orchestrator = GenericResearchOrchestrator()
     agent = DataCollectorAgent(orchestrator, console, show_agent_working, pause_for_explanation, show_state_info)
     
-    interactive_mode = False
+    interactive_mode = state.get("interactive_mode", False)
     new_state, last_result = agent.execute(state, interactive_mode)
     
     new_state["iteration_count"] = state.get("iteration_count", 0) + 1
+    new_state["interactive_mode"] = interactive_mode
     
     return new_state
 
@@ -200,10 +222,11 @@ def data_analyzer_node(state: AgentState) -> AgentState:
     orchestrator = GenericResearchOrchestrator()
     agent = DataAnalyzerAgent(orchestrator, console, show_agent_working, show_llm_call, pause_for_explanation, show_state_info)
     
-    interactive_mode = False
+    interactive_mode = state.get("interactive_mode", False)
     new_state, last_result = agent.execute(state, interactive_mode)
     
     new_state["iteration_count"] = state.get("iteration_count", 0) + 1
+    new_state["interactive_mode"] = interactive_mode
     
     return new_state
 
@@ -213,10 +236,11 @@ def quality_validator_node(state: AgentState) -> AgentState:
     orchestrator = GenericResearchOrchestrator()
     agent = QualityValidatorAgent(orchestrator, console, show_agent_working, show_llm_call, pause_for_explanation, show_state_info)
     
-    interactive_mode = False
+    interactive_mode = state.get("interactive_mode", False)
     new_state, last_result = agent.execute(state, interactive_mode)
     
     new_state["iteration_count"] = state.get("iteration_count", 0) + 1
+    new_state["interactive_mode"] = interactive_mode
     
     return new_state
 
@@ -226,10 +250,11 @@ def report_synthesizer_node(state: AgentState) -> AgentState:
     orchestrator = GenericResearchOrchestrator()
     agent = ReportSynthesizerAgent(orchestrator, console, show_agent_working, show_llm_call, pause_for_explanation, show_state_info)
     
-    interactive_mode = False
+    interactive_mode = state.get("interactive_mode", False)
     new_state, last_result = agent.execute(state, interactive_mode)
     
     new_state["iteration_count"] = state.get("iteration_count", 0) + 1
+    new_state["interactive_mode"] = interactive_mode
     
     return new_state
 
@@ -265,25 +290,48 @@ def orchestrator_routing(state: AgentState) -> str:
     elif current_agent == "report_synthesizer":
         last_result = "Report synthesis completed"
     
+    # Show orchestrator decision making
+    console.print("\n[bold]ORCHESTRATOR DECISION MAKING[/bold]: Analyzing results and deciding next action...")
+    
     # Get orchestrator decision
     decision = orchestrator_decision(orchestrator, state, last_result)
     
+    console.print(f"[bold]ORCHESTRATOR DECISION:[/bold] {decision.upper()}")
+    console.print(f"   Based on: {current_agent} result")
+    console.print(f"   Iteration: {state.get('iteration_count', 0)}/{state.get('max_iterations', 15)}")
+    
+    # Show state info if interactive
+    if state.get("interactive_mode", False):
+        show_state_info(state, True)
+    
     # Map orchestrator decisions to LangGraph node names
+    next_node = ""
     if decision == "research_planning":
-        return "research_planner"
+        next_node = "research_planner"
     elif decision == "data_collection":
-        return "data_collector"
+        next_node = "data_collector"
     elif decision == "data_analysis":
-        return "data_analyzer"
+        next_node = "data_analyzer"
     elif decision == "quality_validation":
-        return "quality_validator"
+        next_node = "quality_validator"
     elif decision == "report_synthesis":
-        return "report_synthesizer"
+        next_node = "report_synthesizer"
     elif decision == "end":
-        return END
+        next_node = END
     else:
-        # Default fallback
-        return "report_synthesizer"
+        next_node = "report_synthesizer"  # Default fallback
+    
+    # Show agent transfer
+    if next_node != END:
+        current_agent_name = current_agent.replace("_", " ").title() if current_agent else "System"
+        next_agent_name = next_node.replace("_", " ").title()
+        show_agent_transfer(current_agent_name, next_agent_name, f"Orchestrator decided to proceed with {decision}")
+        
+        # Pause for explanation if interactive
+        if state.get("interactive_mode", False):
+            pause_for_explanation("TRANSITION", f"Press Enter to continue with {decision.upper()}...", True)
+    
+    return next_node
 
 
 def create_langgraph_workflow() -> StateGraph:
@@ -449,7 +497,9 @@ Current Query: {query[:100]}...
             "report_synthesizer": 0
         },
         "iteration_count": 0,
-        "max_iterations": 15
+        "max_iterations": 15,
+        "interactive_mode": interactive_mode,  # Pass through interactive mode
+        "research_queries": []
     }
     
     # Create and compile the LangGraph workflow
@@ -460,22 +510,15 @@ Current Query: {query[:100]}...
     console.print("Executing LangGraph Multi-Agent Workflow...")
     
     try:
-        # Run the workflow
-        final_state = None
-        for state_update in app.stream(initial_state):
-            # Get the latest state from the stream
-            final_state = state_update
-            
-            # Show progress if needed (optional)
-            if interactive_mode:
-                current_node = list(state_update.keys())[0] if state_update else "unknown"
-                console.print(f"   Current Node: {current_node}")
+        # Run the workflow - use invoke instead of stream to prevent looping
+        final_state = app.invoke(initial_state)
+        state = final_state
         
-        # Use the final state or initial_state if no updates
-        state = final_state.get(list(final_state.keys())[-1], initial_state) if final_state else initial_state
-    
     except Exception as e:
         console.print(f"LangGraph execution error: {e}")
+        # Print more details for debugging
+        import traceback
+        console.print(f"Error details: {traceback.format_exc()}")
         state = initial_state
     
     # Save results
@@ -484,18 +527,27 @@ Current Query: {query[:100]}...
     
     # Show final summary
     console.print(f"\nResearch completed!")
-    console.print(f"Total agent interactions: {len(state.get('agent_messages', []))}")
+    
+    # Remove duplicates for counting
+    unique_messages = []
+    seen = set()
+    for message in state.get('agent_messages', []):
+        if message not in seen:
+            unique_messages.append(message)
+            seen.add(message)
+    
+    console.print(f"Total agent interactions: {len(unique_messages)}")
     console.print(f"Research entities: {len(state.get('parsed_entities', []))}")
     console.print(f"Analysis results: {len(state.get('analysis_results', {}))}")
     console.print(f"Report length: {len(state.get('final_report', ''))} characters")
     
     # Show agent communication log
     console.print(f"\nAgent Communication Log:")
-    for i, message in enumerate(state.get('agent_messages', []), 1):
+    for i, message in enumerate(unique_messages, 1):
         console.print(f"  {i}. {message}")
     
     # Show complete agent transfer chain
-    show_agent_transfer_chain(state.get('agent_messages', []))
+    show_agent_transfer_chain(unique_messages)
 
 
 def main():
