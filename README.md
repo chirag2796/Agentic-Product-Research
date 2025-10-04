@@ -27,7 +27,7 @@ The system uses a centralized orchestrator that intelligently routes tasks betwe
 1. **Clone the repository**
    ```bash
    git clone <repository-url>
-   cd SRS_Assignment
+   cd AgenticResearch
    ```
 
 2. **Install dependencies**
